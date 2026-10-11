@@ -1,5 +1,7 @@
 // Postgres backend (Neon serverless driver over HTTPS), used when DATABASE_URL is set, e.g. on Vercel where the
-// filesystem isn't persistent. Same tables as the SQLite backend, with JSON in jsonb columns.
+// filesystem isn't persistent. Same tables as the SQLite backend. JSON is stored as TEXT, not jsonb: jsonb reorders
+// object keys, and key order matters (Gemini fills structured output in schema property order; outputs and params
+// display in declared order).
 // This is storage, not web access: no web data is read through it (see test/web-boundary.test.ts).
 
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
@@ -8,16 +10,27 @@ import type { Backend, JobInfo, RunRecord, VersionInfo, VersionSource } from "./
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS workflows (
-     name TEXT NOT NULL, version INTEGER NOT NULL, json JSONB NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL,
+     name TEXT NOT NULL, version INTEGER NOT NULL, json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL,
      PRIMARY KEY (name, version))`,
   `CREATE TABLE IF NOT EXISTS runs (
      run_id TEXT PRIMARY KEY, workflow TEXT NOT NULL, version INTEGER, status TEXT NOT NULL,
-     started_at TEXT NOT NULL, finished_at TEXT, json JSONB NOT NULL)`,
+     started_at TEXT NOT NULL, finished_at TEXT, json TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS runs_workflow_started ON runs (workflow, started_at)`,
-  `CREATE TABLE IF NOT EXISTS learn_sessions (id TEXT PRIMARY KEY, goal TEXT, trace_json JSONB NOT NULL, created_at TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS learn_sessions (id TEXT PRIMARY KEY, goal TEXT, trace_json TEXT NOT NULL, created_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS deleted_workflows (name TEXT PRIMARY KEY, deleted_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, type TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS job_events (job_id TEXT NOT NULL, seq INTEGER NOT NULL, json JSONB NOT NULL, PRIMARY KEY (job_id, seq))`,
+  `CREATE TABLE IF NOT EXISTS job_events (job_id TEXT NOT NULL, seq INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (job_id, seq))`,
+  // Databases created before JSON moved to TEXT: convert jsonb columns in place (no-op once converted).
+  `DO $$
+   DECLARE c record;
+   BEGIN
+     FOR c IN SELECT table_name, column_name FROM information_schema.columns
+              WHERE table_schema = current_schema() AND data_type = 'jsonb'
+                AND (table_name, column_name) IN (('workflows','json'), ('runs','json'), ('learn_sessions','trace_json'), ('job_events','json'))
+     LOOP
+       EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE TEXT USING %I::text', c.table_name, c.column_name, c.column_name);
+     END LOOP;
+   END $$`,
 ];
 
 export function postgresBackend(url: string): Backend {
@@ -37,8 +50,8 @@ export function postgresBackend(url: string): Backend {
     names: async () => (await q<{ name: string }>("SELECT DISTINCT name FROM workflows")).map((r) => r.name),
     versions: (name) => q<VersionInfo>("SELECT version, source, created_at FROM workflows WHERE name = $1 ORDER BY version", [name]),
     async read(name, version) {
-      const [row] = await q<{ json: Workflow }>("SELECT json FROM workflows WHERE name = $1 AND version = $2", [name, version]);
-      return row?.json;
+      const [row] = await q<{ json: string }>("SELECT json FROM workflows WHERE name = $1 AND version = $2", [name, version]);
+      return row && (JSON.parse(row.json) as Workflow);
     },
     async write(wf, source) {
       await q("INSERT INTO workflows (name, version, json, source, created_at) VALUES ($1, $2, $3, $4, $5)", [
@@ -46,18 +59,14 @@ export function postgresBackend(url: string): Backend {
       ]);
     },
     async writeNext(wf, source) {
-      // One statement picks the next version and inserts it; a concurrent save of the same name hits the primary
-      // key and retries.
+      // Pick the next version, then insert; a concurrent save of the same name hits the primary key and retries.
       for (let attempt = 0; ; attempt++) {
+        const [{ v }] = await q<{ v: number }>("SELECT COALESCE(MAX(version), 0) + 1 AS v FROM workflows WHERE name = $1", [wf.name]);
+        const saved: Workflow = { ...wf, version: Number(v) };
         try {
-          const [row] = await q<{ json: Workflow }>(
-            `INSERT INTO workflows (name, version, json, source, created_at)
-             SELECT $1, n.v, jsonb_set($2::jsonb, '{version}', to_jsonb(n.v)), $3, $4
-             FROM (SELECT COALESCE(MAX(version), 0) + 1 AS v FROM workflows WHERE name = $1) n
-             RETURNING json`,
-            [wf.name, JSON.stringify(wf), source, now()],
-          );
-          const saved = row.json;
+          await q("INSERT INTO workflows (name, version, json, source, created_at) VALUES ($1, $2, $3, $4, $5)", [
+            saved.name, saved.version, JSON.stringify(saved), source, now(),
+          ]);
           return saved;
         } catch (err) {
           if (attempt >= 3 || !/duplicate key|unique/i.test(String(err))) throw err;
@@ -78,12 +87,12 @@ export function postgresBackend(url: string): Backend {
       );
     },
     async getRun(runId) {
-      const [row] = await q<{ json: RunRecord }>("SELECT json FROM runs WHERE run_id = $1", [runId]);
-      return row?.json;
+      const [row] = await q<{ json: string }>("SELECT json FROM runs WHERE run_id = $1", [runId]);
+      return row && (JSON.parse(row.json) as RunRecord);
     },
     async listRuns(name, limit) {
-      const rows = await q<{ json: RunRecord }>("SELECT json FROM runs WHERE workflow = $1 ORDER BY started_at DESC, run_id DESC LIMIT $2", [name, limit]);
-      return rows.map((r) => r.json);
+      const rows = await q<{ json: string }>("SELECT json FROM runs WHERE workflow = $1 ORDER BY started_at DESC, run_id DESC LIMIT $2", [name, limit]);
+      return rows.map((r) => JSON.parse(r.json) as RunRecord);
     },
     async saveTrace(id, trace) {
       const goal = trace && typeof trace === "object" && typeof (trace as { goal?: unknown }).goal === "string" ? (trace as { goal: string }).goal : null;
@@ -94,8 +103,8 @@ export function postgresBackend(url: string): Backend {
       );
     },
     async getTrace(id) {
-      const [row] = await q<{ trace_json: unknown }>("SELECT trace_json FROM learn_sessions WHERE id = $1", [id]);
-      return row?.trace_json;
+      const [row] = await q<{ trace_json: string }>("SELECT trace_json FROM learn_sessions WHERE id = $1", [id]);
+      return row && JSON.parse(row.trace_json);
     },
     async createJob(job) {
       await q("INSERT INTO jobs (id, type, status, created_at) VALUES ($1, $2, $3, $4)", [job.id, job.type, job.status, job.created_at]);
@@ -111,8 +120,8 @@ export function postgresBackend(url: string): Backend {
       await q("INSERT INTO job_events (job_id, seq, json) VALUES ($1, $2, $3) ON CONFLICT (job_id, seq) DO NOTHING", [id, seq, JSON.stringify(event)]);
     },
     async jobEvents(id, afterSeq) {
-      const rows = await q<{ seq: number; json: unknown }>("SELECT seq, json FROM job_events WHERE job_id = $1 AND seq > $2 ORDER BY seq", [id, afterSeq]);
-      return rows.map((r) => ({ seq: r.seq, event: r.json }));
+      const rows = await q<{ seq: number; json: string }>("SELECT seq, json FROM job_events WHERE job_id = $1 AND seq > $2 ORDER BY seq", [id, afterSeq]);
+      return rows.map((r) => ({ seq: r.seq, event: JSON.parse(r.json) }));
     },
   };
 }
