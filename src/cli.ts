@@ -1,9 +1,10 @@
 import "./env.js";
 import { learn } from "./compile.js";
 import { editWorkflow } from "./edit.js";
+import { repairAndVerify, repairWorkflow } from "./repair.js";
 import { log } from "./env.js";
 import { runWorkflow } from "./executor.js";
-import { deleteWorkflow, getTrace, getWorkflow, listRuns, listWorkflows, saveWorkflow } from "./store.js";
+import { deleteWorkflow, getRun, getTrace, getWorkflow, listRuns, listWorkflows, saveWorkflow } from "./store.js";
 
 const USAGE = `workflow-memory
 
@@ -14,6 +15,8 @@ const USAGE = `workflow-memory
   runs <name> [--limit=N]                        recent run history
   save <file.json>                               save a hand-written workflow as the next version
   edit <name> "<change>" [--dry-run]             have Gemini apply a plain-English change, save as the next version
+  repair <run_id> [step] [--dry-run] [--no-test] have Gemini fix a failed step, test-run the fix (up to 3 rounds),
+                                                 save it as the next version if a test passes (--force: save anyway)
   delete <name>                                  delete a workflow, all its versions and its run history`;
 
 function parse(argv: string[]) {
@@ -120,6 +123,42 @@ async function main() {
       const { version: _v, ...draft } = result.workflow;
       const saved = saveWorkflow(draft, "cli");
       out(`Saved ${saved.name} v${saved.version}`);
+      return;
+    }
+    case "repair": {
+      const run = getRun(positional[0] ?? "");
+      if (!run) throw new Error("usage: repair <run_id> [step]  (run ids are listed by `runs <name>`)");
+      const stepId = positional[1] ?? run.steps.find((s) => s.status !== "ok")?.id;
+      if (!stepId) throw new Error(`Every step passed in run ${run.run_id}; there's nothing to repair.`);
+      const wf = getWorkflow(run.workflow);
+      if (!wf) throw new Error(`No workflow named "${run.workflow}"`);
+      if (flags["no-test"]) {
+        const result = await repairWorkflow(wf, run, stepId);
+        log(result.reply);
+        if (!result.changed) return;
+        if (flags["dry-run"]) return out(result.workflow);
+        const { version: _v, ...draft } = result.workflow;
+        const saved = saveWorkflow(draft, "repair");
+        out(`Saved ${saved.name} v${saved.version} (repaired from v${run.version}, untested)`);
+        return;
+      }
+      const result = await repairAndVerify(wf, run, stepId, {
+        onEvent: (e) => {
+          if (e.kind === "repair_round") log(`Round ${e.round}: fixing ${e.step}...`);
+          else if (e.kind === "repair_proposal") log(`  ${e.reply}`);
+          else if (e.kind === "test_done") log(`  test: ${e.status}${e.failed_step ? ` at ${e.failed_step}: ${e.failures.join("; ")}` : ""}`);
+        },
+      });
+      log(result.reply);
+      if (!result.changed) return;
+      if (result.verified !== true && !flags.force && !flags["dry-run"]) {
+        process.exitCode = 1;
+        return log("Not saved: no fix passed its test run. Rerun with --dry-run to see it, or --force to save it anyway.");
+      }
+      if (flags["dry-run"]) return out(result.workflow);
+      const { version: _v, ...draft } = result.workflow;
+      const saved = saveWorkflow(draft, "repair");
+      out(`Saved ${saved.name} v${saved.version} (repaired from v${run.version})`);
       return;
     }
     case "delete": {

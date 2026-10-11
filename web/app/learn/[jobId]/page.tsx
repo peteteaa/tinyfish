@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useMemo, useState } from "react";
 import type { Workflow } from "@core/schema.js";
+import { OutputView } from "@/components/OutputView";
 import { SaveForm } from "@/components/SaveForm";
 import { TraceList } from "@/components/TraceList";
 import { TraceWorkflowView } from "@/components/TraceWorkflowView";
@@ -65,7 +66,7 @@ export default function LearnPage({ params }: { params: Promise<{ jobId: string 
       {s.answer && (
         <section className="panel" aria-labelledby="answer">
           <h2 id="answer">What the agent found</h2>
-          <pre className="json">{JSON.stringify(s.answer.answer, null, 2)}</pre>
+          <OutputView value={s.answer.answer} />
           {s.answer.notes && <p>{s.answer.notes}</p>}
         </section>
       )}

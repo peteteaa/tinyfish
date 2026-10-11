@@ -1,6 +1,6 @@
 import type { Workflow } from "../schema.js";
 
-export type VersionSource = "learned" | "web" | "cli" | "import";
+export type VersionSource = "learned" | "web" | "cli" | "import" | "repair";
 
 export interface WorkflowSummary {
   name: string;

@@ -1,5 +1,6 @@
 import { resolveParams } from "@core/executor.js";
 import { startRunJob } from "@core/jobs.js";
+import { validateWorkflow, type Workflow } from "@core/schema.js";
 import { getWorkflow, listRuns } from "@core/store.js";
 import { apiError, readJson } from "@/lib/api";
 
@@ -8,13 +9,24 @@ export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ name: string }> };
 
-/** POST { params, version? } -> 202 { jobId }. Params are checked before the run starts. */
+/**
+ * POST { params, version? } -> 202 { jobId }. Params are checked before the run starts.
+ * POST { params, workflow } test-runs unsaved changes instead; that run isn't saved to run history.
+ */
 export async function POST(request: Request, { params }: Ctx) {
   const { name } = await params;
   const body = (await readJson(request)) ?? {};
   const version = typeof body.version === "number" ? body.version : undefined;
-  const workflow = getWorkflow(name, version);
+  let workflow: Workflow | undefined = getWorkflow(name, version);
   if (!workflow) return apiError(404, "workflow_not_found", `There's no saved workflow named "${name}".`);
+  if (body.workflow !== undefined) {
+    const check = validateWorkflow(body.workflow);
+    if (!check.ok) return apiError(400, "invalid_workflow", "The changes have errors.", { errors: check.errors });
+    if (check.workflow.name !== name) return apiError(400, "wrong_workflow", `That workflow is "${check.workflow.name}", not "${name}".`);
+    // No version: the executor only records runs of saved versions.
+    const { version: _v, ...unsaved } = check.workflow;
+    workflow = unsaved;
+  }
   const input = body.params && typeof body.params === "object" && !Array.isArray(body.params) ? (body.params as Record<string, unknown>) : {};
   // Empty form fields mean "use the default".
   for (const [k, v] of Object.entries(input)) if (v === "" || v === null) delete input[k];

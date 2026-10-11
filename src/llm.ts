@@ -2,7 +2,7 @@
 // all web access goes through TinyFish (src/tinyfish.ts).
 
 import { GoogleGenAI, type Content, type GenerateContentResponse } from "@google/genai";
-import { requireEnv } from "./env.js";
+import { log, requireEnv } from "./env.js";
 
 /** Explore and compile. */
 export const MODEL = process.env.WM_MODEL ?? "gemini-3.5-flash-lite";
@@ -13,6 +13,39 @@ let client: GoogleGenAI | undefined;
 export function gemini(): GoogleGenAI {
   client ??= new GoogleGenAI({ apiKey: requireEnv("GEMINI_API_KEY") });
   return client;
+}
+
+const MAX_RETRIES = 4;
+const MAX_WAIT_MS = 65_000;
+
+/** Rate limits (429) and overloads (5xx) are worth waiting out; anything else isn't. */
+export function isTransientGeminiError(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status;
+  if (status === 429 || (typeof status === "number" && status >= 500)) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b(429|500|502|503|504)\b|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded|ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg);
+}
+
+/** Server-suggested wait ("retryDelay":"40s" / "retry in 40.7s"), else exponential backoff. */
+function retryDelayMs(err: unknown, attempt: number): number {
+  const msg = err instanceof Error ? err.message : String(err);
+  const m = msg.match(/retryDelay"?\s*:\s*"(\d+(?:\.\d+)?)s"|retry in (\d+(?:\.\d+)?)s/i);
+  const suggested = m ? Number(m[1] ?? m[2]) * 1000 + 500 : 2_000 * 2 ** attempt;
+  return Math.min(suggested, MAX_WAIT_MS);
+}
+
+/** generateContent with retries on rate limits and transient server errors. Every Gemini call goes through here. */
+export async function generate(params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]): Promise<GenerateContentResponse> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await gemini().models.generateContent(params);
+    } catch (err) {
+      if (attempt >= MAX_RETRIES || !isTransientGeminiError(err)) throw err;
+      const wait = retryDelayMs(err, attempt);
+      log(`  gemini: ${(err as { status?: number }).status ?? "transient error"}, retrying in ${Math.round(wait / 1000)}s`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 /** The candidate's content, or a readable error when the model stopped without one (safety, max tokens, ...). */
@@ -51,7 +84,7 @@ export async function extract(args: {
   instruction: string;
   schema: Record<string, unknown>;
 }): Promise<{ value: unknown; usage: { input: number; output: number } }> {
-  const response = await gemini().models.generateContent({
+  const response = await generate({
     model: FAST_MODEL,
     contents: [
       {

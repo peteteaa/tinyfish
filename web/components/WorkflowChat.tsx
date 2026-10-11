@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Workflow } from "@core/schema.js";
 import type { WorkflowDiff } from "@core/store.js";
+import { useRepair, type RepairRequest } from "@/components/Repair";
 
 interface Turn {
   role: "user" | "assistant";
@@ -17,6 +18,52 @@ const SUGGESTIONS = [
   "Add a check that the extraction is never empty",
   "Make the URLs a parameter",
 ];
+
+interface EditResultBody {
+  workflow: Workflow;
+  reply: string;
+  diff: WorkflowDiff;
+  changed: boolean;
+}
+interface RepairResultBody extends EditResultBody {
+  verified: boolean | null;
+  rounds: number;
+  test?: { status: string; failed_step?: string; failures: string[] };
+}
+
+/** Follows a repair job's events, reporting progress, until repair_result (resolves) or error (rejects). */
+function followRepair(jobId: string, onProgress: (line: string) => void): Promise<RepairResultBody> {
+  return new Promise((resolve, reject) => {
+    const es = new EventSource(`/api/jobs/${jobId}/events`);
+    let result: RepairResultBody | undefined;
+    es.onmessage = (m) => {
+      let e: Record<string, unknown>;
+      try {
+        e = JSON.parse(m.data);
+      } catch {
+        return;
+      }
+      const round = e.round as number;
+      if (e.kind === "repair_round") onProgress(`Round ${round}: ${round === 1 ? "diagnosing the failure" : `fixing ${e.step}`}…`);
+      else if (e.kind === "repair_proposal" && e.changed) onProgress(`Round ${round}: testing the fix…`);
+      else if (e.kind === "test_step" && !e.status) onProgress(`Round ${round}: testing the fix (${e.step})…`);
+      else if (e.kind === "test_done" && e.failed_step) onProgress(`Round ${round}: still fails at ${e.failed_step}; trying again…`);
+      else if (e.kind === "repair_result") result = e as unknown as RepairResultBody;
+      else if (e.kind === "error") {
+        es.close();
+        reject(new Error(String(e.message ?? "The repair failed.")));
+      } else if (e.kind === "done") {
+        es.close();
+        if (result) resolve(result);
+        else reject(new Error("The repair finished without a result."));
+      }
+    };
+    // The server replays history on reconnect; only give up if the job is gone.
+    es.onerror = () => {
+      if (es.readyState === EventSource.CLOSED) reject(new Error("Lost the connection to the repair. Try again."));
+    };
+  });
+}
 
 /** One line per kind of change, e.g. "Edited step extract_plans (instruction)". */
 function describe(d: WorkflowDiff): string[] {
@@ -41,12 +88,15 @@ export function WorkflowChat({
   workflow,
   onChange,
   resetKey,
+  onRepair,
   heading = "Edit with chat",
   intro,
 }: {
   workflow: Workflow;
   onChange: (next: Workflow) => void;
   resetKey?: unknown;
+  /** Called when a repair for this run starts, so the parent can reuse the run's params. */
+  onRepair?: (runId: string) => void;
   heading?: string;
   intro?: string;
 }) {
@@ -54,6 +104,8 @@ export function WorkflowChat({
   const [undo, setUndo] = useState<Workflow[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Live status line while a repair job runs, e.g. "Round 2: testing the fix (fetch_pages)…". */
+  const [progress, setProgress] = useState<string | null>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -63,19 +115,27 @@ export function WorkflowChat({
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns, busy]);
 
-  async function send(text: string) {
-    const instruction = text.trim();
-    if (!instruction || busy) return;
+  function apply(before: Workflow, result: EditResultBody, extraLines: string[] = []) {
+    if (result.changed) {
+      setUndo((u) => [...u, before]);
+      onChange(result.workflow);
+    }
+    const changes = result.changed ? describe(result.diff) : ["No changes to the workflow."];
+    setTurns((t) => [...t, { role: "assistant", text: result.reply, changes: [...extraLines, ...changes] }]);
+  }
+
+  /** Sends one turn to /api/edit and applies the result. */
+  async function ask(userText: string, route: "edit", extra: Record<string, unknown>) {
+    if (busy) return;
     const before = workflow;
     const history = turns.filter((t) => !t.error).map(({ role, text }) => ({ role, text }));
-    setTurns((t) => [...t, { role: "user", text: instruction }]);
-    setInput("");
+    setTurns((t) => [...t, { role: "user", text: userText }]);
     setBusy(true);
     try {
-      const res = await fetch("/api/edit", {
+      const res = await fetch(`/api/${route}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ workflow: before, instruction, history }),
+        body: JSON.stringify({ ...extra, workflow: before, history }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -84,12 +144,7 @@ export function WorkflowChat({
         setTurns((t) => [...t, { role: "assistant", text: errors.length ? `${message} ${errors.join("; ")}` : message, error: true }]);
         return;
       }
-      const result = body as { workflow: Workflow; reply: string; diff: WorkflowDiff; changed: boolean };
-      if (result.changed) {
-        setUndo((u) => [...u, before]);
-        onChange(result.workflow);
-      }
-      setTurns((t) => [...t, { role: "assistant", text: result.reply, changes: result.changed ? describe(result.diff) : ["No changes to the workflow."] }]);
+      apply(before, body as EditResultBody);
     } catch {
       setTurns((t) => [...t, { role: "assistant", text: "Could not reach the server. Check your connection and try again.", error: true }]);
     } finally {
@@ -97,6 +152,63 @@ export function WorkflowChat({
       inputRef.current?.focus();
     }
   }
+
+  /** Starts a repair job (propose, test-run, retry) and follows its events until the result arrives. */
+  async function askRepair(runId: string, step: string) {
+    if (busy) return;
+    const before = workflow;
+    const history = turns.filter((t) => !t.error).map(({ role, text }) => ({ role, text }));
+    setTurns((t) => [...t, { role: "user", text: `Repair step ${step} using run ${runId}.` }]);
+    setBusy(true);
+    setProgress("Round 1: diagnosing the failure…");
+    const fail = (text: string) => setTurns((t) => [...t, { role: "assistant", text, error: true }]);
+    try {
+      const res = await fetch("/api/repair", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ run_id: runId, step, workflow: before, history }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.jobId) return fail(body?.error?.message ?? "The repair didn't start. Try again.");
+      const result = await followRepair(body.jobId, setProgress);
+      const lines =
+        result.verified === true
+          ? [`Tested: the run passes with this fix${result.rounds > 1 ? ` (attempt ${result.rounds})` : ""}.`]
+          : result.verified === false
+            ? [`Tested ${result.rounds > 1 ? "several fixes" : "the fix"}: still fails at ${result.test?.failed_step ?? "a step"}. Review before saving.`]
+            : result.test?.status === "invalid_params"
+              ? [`Not tested: ${result.test.failures[0] ?? "the failed run's params don't fit the fix"}.`]
+              : [];
+      apply(before, result, lines);
+    } catch (err) {
+      fail(err instanceof Error ? err.message : "Lost the connection to the repair. Try again.");
+    } finally {
+      setBusy(false);
+      setProgress(null);
+      inputRef.current?.focus();
+    }
+  }
+
+  function send(text: string) {
+    const instruction = text.trim();
+    if (!instruction || busy) return;
+    setInput("");
+    return ask(instruction, "edit", { instruction });
+  }
+
+  // Repairs requested from the run panel or run history land in this conversation.
+  const repair = useRepair();
+  const repairRef = useRef<(r: RepairRequest) => Promise<void>>(async () => {});
+  repairRef.current = async ({ runId, step }) => {
+    document.getElementById("chat-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    onRepair?.(runId);
+    await askRepair(runId, step);
+  };
+  useEffect(() => {
+    if (!repair) return;
+    repair.register((r) => repairRef.current(r));
+    return () => repair.register(null);
+  }, [repair?.register]);
 
   function undoLast() {
     const prev = undo.at(-1);
@@ -127,7 +239,7 @@ export function WorkflowChat({
               )}
             </li>
           ))}
-          {busy && <li className="chat-turn assistant pending"><p className="status status-running">Gemini is editing…</p></li>}
+          {busy && <li className="chat-turn assistant pending"><p className="status status-running">{progress ?? "Gemini is editing…"}</p></li>}
         </ol>
       )}
 

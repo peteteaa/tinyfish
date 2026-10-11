@@ -3,7 +3,7 @@
 import type { Content, FunctionCall, Part } from "@google/genai";
 import { z } from "zod";
 import { log } from "./env.js";
-import { candidateContent, gemini, geminiSchema, MODEL, textOf } from "./llm.js";
+import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
 import { newId, saveTrace } from "./store.js";
 import { fetchPages, runAgent, search } from "./tinyfish.js";
 
@@ -25,6 +25,8 @@ export interface Trace {
   answer?: unknown;
   notes?: string;
   final_text?: string;
+  /** When the goal was generic, the concrete example task that was actually explored (see concretize). */
+  example?: { task: string; assumed: string; not_done?: string };
 }
 
 const MAX_TOOL_TEXT = 15_000; // chars of page text shown to the model per page
@@ -51,7 +53,56 @@ parameterized workflow, so solve the task the way you'd want it repeated:
   both before deciding fetch didn't work. Never re-fetch the same page with tinyfish_agent just to read text that
   fetch already returned.
 - Be direct. Don't make exploratory calls you won't need; every call you make may be replayed on every rerun.
+- The task is often described generically, as a recurring job or for inputs the user will supply later ("for my
+  field", "for each new signup", "for {company}"). Don't stop to ask and don't just describe the idea: pick one
+  realistic example input (e.g. a well-known company, a common field such as software engineering), do the web part of
+  the task for it with the tools, and say in submit_answer's notes which input you assumed so it becomes a parameter.
+  Pick the example first and make every call about it: the facts in your answer must come from pages you searched or
+  fetched for that input, never from memory. A typical research pattern is search for the subject, then fetch its
+  own site (and one or two relevant results), then answer.
+- You can only read the web. If the task also asks to post, send or save somewhere (Slack, email, a CRM), do the
+  research part, put the finished message in the answer, and note that delivery isn't done by this workflow.
 - When you have the answer, call submit_answer exactly once with the structured result, then stop.`;
+
+const CONCRETIZE = `You prepare web tasks for an explorer that solves one concrete task with web search and page fetches,
+and whose run is then compiled into a reusable, parameterized workflow.
+
+If the task is already concrete (it names the companies, URLs, fields, places or other inputs it's about), return it
+unchanged with generic=false.
+
+If it's generic (a recurring job, "for my field", "for each new signup", "for {company}", or an input the user will
+supply later), pick ONE realistic example input and rewrite it as a single concrete task the explorer can do right
+now on the public web, e.g. "Research the company at supabase.com: what it does, its size and funding, and whether a
+signup from it deserves a sales follow-up. Return a short brief." The example becomes the param default, so pick
+something stable and well known.
+
+The explorer can only read the web. Leave out anything else the task asks for (posting to Slack, sending email,
+saving to a CRM, triggers like "every time someone signs up") from the task, ask for the finished message/brief in the
+answer instead, and list what was left out in not_done.
+
+Reply with JSON: {"generic": boolean, "task": string, "assumed": string (the example input(s) chosen, "" if none),
+"not_done": string ("" if nothing was left out)}.`;
+
+/** Turns a generic goal into one concrete example task, so exploration has something to look up. */
+export async function concretize(goal: string): Promise<{ generic: boolean; task: string; assumed: string; not_done: string }> {
+  const response = await generate({
+    model: MODEL,
+    contents: [{ role: "user", parts: [{ text: `<task>\n${goal}\n</task>` }] }],
+    config: { systemInstruction: CONCRETIZE, responseMimeType: "application/json" },
+  });
+  try {
+    const r = JSON.parse(textOf(candidateContent(response))) as Record<string, unknown>;
+    const task = typeof r.task === "string" && r.task.trim() ? r.task.trim() : goal;
+    return {
+      generic: r.generic === true && task !== goal,
+      task,
+      assumed: typeof r.assumed === "string" ? r.assumed : "",
+      not_done: typeof r.not_done === "string" ? r.not_done : "",
+    };
+  } catch {
+    return { generic: false, task: goal, assumed: "", not_done: "" };
+  }
+}
 
 interface Tool<S extends z.ZodType> {
   name: string;
@@ -186,7 +237,16 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
     return { functionResponse: { id: fc.id, name: fc.name, response } };
   }
 
-  const contents: Content[] = [{ role: "user", parts: [{ text: goal }] }];
+  const concrete = await concretize(goal);
+  if (concrete.generic) {
+    trace.example = { task: concrete.task, assumed: concrete.assumed, ...(concrete.not_done && { not_done: concrete.not_done }) };
+    log(`  generic goal; exploring an example: ${concrete.task}`);
+  }
+  const prompt = concrete.generic
+    ? `${concrete.task}\n\n(This is an example run of a reusable workflow for: "${goal}". Example input: ${concrete.assumed}. ` +
+      `Make every call about that input.)`
+    : goal;
+  const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
   const config = {
     systemInstruction: SYSTEM,
     tools: [
@@ -203,7 +263,7 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
   const maxIterations = opts.maxIterations ?? 30;
   let finalText = "";
   for (let i = 0; i < maxIterations; i++) {
-    const response = await gemini().models.generateContent({ model: MODEL, contents, config });
+    const response = await generate({ model: MODEL, contents, config });
     const content = candidateContent(response);
     // Append the model turn verbatim: Gemini 3 requires its thought signatures back on the next request.
     contents.push(content);

@@ -129,6 +129,7 @@ export function formatDuration(ms: number): string {
 export const SOURCE_LABEL: Record<string, string> = {
   learned: "Learned",
   web: "Edited in web",
+  repair: "Repaired",
   cli: "Pushed from CLI",
   import: "Imported",
 };

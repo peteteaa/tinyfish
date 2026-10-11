@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Param } from "@core/schema.js";
+import { OutputView, summarizeValue } from "@/components/OutputView";
+import { RepairButton } from "@/components/Repair";
 import { useJobEvents } from "@/lib/useJobEvents";
 import { formatDuration } from "@/lib/learnEvents";
 import { countCalls, reduceRunEvents, STATUS_WORD, type RunStepView } from "@/lib/runEvents";
@@ -35,7 +37,7 @@ function toPayload(params: Record<string, Param>, values: Values): Record<string
   return out;
 }
 
-function StepRow({ step, index, now, failures }: { step: RunStepView; index: number; now: number; failures?: { check: string; passed: boolean; message?: string }[] }) {
+function StepRow({ step, index, now, failures, runId, trial }: { step: RunStepView; index: number; now: number; failures?: { check: string; passed: boolean; message?: string }[]; runId?: string; trial?: boolean }) {
   const rec = step.record;
   const secs = step.startedAtClient ? Math.max(0, Math.floor((now - step.startedAtClient) / 1000)) : 0;
   const cls = step.status === "ok" ? "status-ok" : step.status === "running" ? "status-running" : step.status === "pending" ? "muted small" : "status-failed";
@@ -53,25 +55,34 @@ function StepRow({ step, index, now, failures }: { step: RunStepView; index: num
           {step.status === "error" && `Failed: ${rec?.error ?? "unknown error"}`}
         </span>
       </div>
-      {shown.length > 0 && (
+      {(shown.length > 0 || step.status === "error") && (
         <div className="run-failures">
-          <ul className="small">
-            {shown.map((c, i) => <li key={i} className="error-text"><code>{c.check}</code>{c.message ? `: ${c.message}` : ""}</li>)}
-          </ul>
-          <button type="button" disabled>Repair this step</button> <span className="small muted">Coming next</span>
+          {shown.length > 0 && (
+            <ul className="small">
+              {shown.map((c, i) => <li key={i} className="error-text"><code>{c.check}</code>{c.message ? `: ${c.message}` : ""}</li>)}
+            </ul>
+          )}
+          {trial ? (
+            <span className="small muted">Ask the chat for another fix, or save and repair from a saved run.</span>
+          ) : runId ? (
+            <><RepairButton runId={runId} step={step.id} /> <span className="small muted">Gemini proposes a fix in the editor below; review it, then save.</span></>
+          ) : (
+            <span className="small muted">Repair is available when the run finishes.</span>
+          )}
         </div>
       )}
       {rec && rec.output !== undefined && (
         <details>
-          <summary className="small">Output</summary>
-          <pre className="json">{JSON.stringify(rec.output, null, 2)}</pre>
+          <summary className="small">Output <span className="muted">· {summarizeValue(rec.output)}</span></summary>
+          <OutputView value={rec.output} />
         </details>
       )}
     </li>
   );
 }
 
-function RunView({ jobId, forEachIds, onDone }: { jobId: string; forEachIds: string[]; onDone: () => void }) {
+/** Live view of one run job. `trial` marks a test run of unsaved changes (not in run history, so not repairable). */
+export function RunView({ jobId, forEachIds, onDone, trial }: { jobId: string; forEachIds: string[]; onDone: () => void; trial?: boolean }) {
   const { events, status } = useJobEvents(jobId);
   const state = reduceRunEvents(events);
   const [now, setNow] = useState(() => Date.now());
@@ -98,7 +109,7 @@ function RunView({ jobId, forEachIds, onDone }: { jobId: string; forEachIds: str
       {state.error && <p className="error-text" role="alert">{state.error}</p>}
       {state.steps.length === 0 && !state.error && status !== "not_found" && <p className="muted">Starting…</p>}
       <ol className="plain">
-        {state.steps.map((s, i) => <StepRow key={s.id} step={s} index={i} now={now} failures={state.repair[s.id]} />)}
+        {state.steps.map((s, i) => <StepRow key={s.id} step={s} index={i} now={now} failures={state.repair[s.id]} runId={state.run?.run_id} trial={trial} />)}
       </ol>
       {run && (
         <div className="run-summary">
@@ -107,8 +118,8 @@ function RunView({ jobId, forEachIds, onDone }: { jobId: string; forEachIds: str
             {" in "}{formatDuration(run.duration_ms)} · {counts.free} free calls, {counts.metered} metered
           </p>
           {run.error && <p className="error-text">{run.error}</p>}
-          <p className="small muted">Output</p>
-          <pre className="json">{JSON.stringify(run.output, null, 2) ?? "No output"}</pre>
+          <h3 className="out-heading">Output</h3>
+          <OutputView value={run.output} />
         </div>
       )}
     </div>

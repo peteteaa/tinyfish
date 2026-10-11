@@ -6,13 +6,14 @@ import type { Content } from "@google/genai";
 import { z } from "zod";
 import { log, SEEDS_DIR } from "./env.js";
 import { explore, type Trace } from "./explore.js";
-import { candidateContent, gemini, geminiSchema, MODEL, textOf } from "./llm.js";
+import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
 import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { listWorkflows, saveWorkflow } from "./store.js";
 
 const SUMMARY_TEXT = 1_500; // chars of each tool output shown to the compiler; it needs shapes, not content
 
-function summarize(value: unknown, n = SUMMARY_TEXT): unknown {
+/** Truncates long strings anywhere in a value, keeping its shape. */
+export function summarize(value: unknown, n = SUMMARY_TEXT): unknown {
   if (typeof value === "string") return value.length > n ? `${value.slice(0, n)}...[${value.length - n} more chars]` : value;
   if (Array.isArray(value)) return value.map((v) => summarize(v, n));
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, summarize(v, n)]));
@@ -29,7 +30,9 @@ export const WORKFLOW_FORMAT = `Step types:
 - extract {input, instruction, output_schema} -> JSON matching output_schema, produced by a small Gemini call
 
 Every step has: id (snake_case), description?, forEach?, concurrency?, checks?.
-forEach is a template resolving to an array; the step runs per element with {{item}} bound, and its output is an array.
+forEach is a template resolving to an array; the step runs per element with {{item}} bound, and its output is an array
+with one output per element. So a later step reads it with "*" or an index first: if search step "s" has a forEach,
+its first result URL per item is {{steps.s.*.results.0.url}} (not {{steps.s.results...}}).
 
 Templates: {{params.name}}, {{steps.<id>.<path>}}, {{previous.<id>.<path>}} (same step's output from the last successful run),
 {{item.<path>}}. Paths are dotted, numeric segments index arrays, "*" maps over arrays ({{steps.s.results.*.url}}).
@@ -81,6 +84,15 @@ export async function compileDetailed(
   trace: Trace,
   opts: { name?: string } = {},
 ): Promise<{ workflow: Workflow; derivedFrom: DerivedFrom }> {
+  // With no TinyFish calls there's nothing to replay; the compiler would only reproduce the explorer's reply
+  // (typically "please tell me X") as a workflow that never touches the web.
+  if (!trace.calls.length) {
+    const said = trace.notes || (typeof trace.final_text === "string" ? trace.final_text : "");
+    throw new Error(
+      `The explorer didn't look anything up on the web, so there's nothing to turn into a workflow.` +
+        `${said ? ` It said: "${said.slice(0, 300)}"` : ""} Add the missing details to the task and try again.`,
+    );
+  }
   const example = fs.readFileSync(path.join(SEEDS_DIR, "competitor_pricing.json"), "utf8");
   const existing = listWorkflows().map((w) => w.name);
   const prompt = [
@@ -88,6 +100,11 @@ export async function compileDetailed(
     `<trace>\n${JSON.stringify(summarize(trace.calls.map((c, index) => ({ index, ...c }))), null, 2)}\n</trace>`,
     `<submitted_answer>\n${JSON.stringify(summarize(trace.answer ?? trace.final_text), null, 2)}\n</submitted_answer>`,
     trace.notes ? `<explorer_notes>\n${trace.notes}\n</explorer_notes>` : "",
+    trace.example
+      ? `<example_run>\nThe goal was generic, so the trace explored one example: "${trace.example.task}" ` +
+        `(example input: ${trace.example.assumed}). Make that input a param whose default is the example.` +
+        `${trace.example.not_done ? ` Not done by this workflow (the web layer can only read): ${trace.example.not_done}.` : ""}\n</example_run>`
+      : "",
     `<workflow_schema>\n${JSON.stringify(geminiSchema(z.toJSONSchema(WorkflowSchema, { io: "input" })))}\n</workflow_schema>`,
     `<example_workflow>\n${example}\n</example_workflow>`,
     opts.name
@@ -102,7 +119,7 @@ export async function compileDetailed(
   let compiled: Workflow | undefined;
   let derivedFrom: DerivedFrom = {};
   for (let attempt = 1; attempt <= MAX_ATTEMPTS && !compiled; attempt++) {
-    const response = await gemini().models.generateContent({
+    const response = await generate({
       model: MODEL,
       contents,
       config: { systemInstruction: SYSTEM, responseMimeType: "application/json" },

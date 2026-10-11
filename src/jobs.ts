@@ -6,6 +6,9 @@ import { compileDetailed } from "./compile.js";
 import { log } from "./env.js";
 import { runWorkflowDef } from "./executor.js";
 import { explore } from "./explore.js";
+import type { EditTurn } from "./edit.js";
+import { repairAndVerify } from "./repair.js";
+import type { RunRecord } from "./store/types.js";
 import type { Workflow } from "./schema.js";
 import { newId } from "./store.js";
 
@@ -14,7 +17,7 @@ type Listener = (e: JobEvent) => void;
 
 export interface Job {
   id: string;
-  type: "learn" | "run" | "test";
+  type: "learn" | "run" | "repair" | "test";
   status: "running" | "done" | "error";
   created_at: string;
   events: JobEvent[];
@@ -120,5 +123,18 @@ export function startRunJob(workflow: Workflow, params: Record<string, unknown>)
       },
     });
     send({ kind: "run_done", run });
+  });
+}
+
+/**
+ * Repair job: Gemini proposes a fix for a failed step, the fix is test-run with the failed run's params (not saved),
+ * and failures go back to Gemini, up to 3 rounds. Nothing is saved; the user reviews the result and saves it.
+ *
+ * Events: repair_round, repair_proposal, test_step, test_done, repair_result, error, done.
+ */
+export function startRepairJob(workflow: Workflow, run: RunRecord, step: string, history: EditTurn[] = []): Job {
+  return startJob("repair", async (send) => {
+    const result = await repairAndVerify(workflow, run, step, { history, onEvent: (e) => send(e) });
+    send({ kind: "repair_result", ...result });
   });
 }

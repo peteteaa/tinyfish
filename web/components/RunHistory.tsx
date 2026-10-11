@@ -1,3 +1,4 @@
+import { RepairButton } from "@/components/Repair";
 import { formatDuration, truncate } from "@/lib/learnEvents";
 import { STATUS_WORD } from "@/lib/runEvents";
 
@@ -8,6 +9,7 @@ interface RunRow {
   started_at: string;
   duration_ms: number;
   params: Record<string, unknown>;
+  steps?: { id: string; status: string }[];
 }
 
 export function RunHistory({ runs }: { runs: RunRow[] }) {
@@ -24,7 +26,13 @@ export function RunHistory({ runs }: { runs: RunRow[] }) {
               <td><span className={`status ${r.status === "ok" ? "status-ok" : "status-failed"}`}>{STATUS_WORD[r.status] ?? r.status}</span></td>
               <td>{formatDuration(r.duration_ms)}</td>
               <td className="mono small">{truncate(JSON.stringify(r.params), 60)}</td>
-              <td><a href={`/api/runs/${r.run_id}`} target="_blank" rel="noreferrer">View</a></td>
+              <td>
+                <a href={`/runs/${r.run_id}`}>View</a>
+                {(() => {
+                  const failed = r.steps?.find((st) => st.status !== "ok");
+                  return failed ? <> · <RepairButton runId={r.run_id} step={failed.id} compact /></> : null;
+                })()}
+              </td>
             </tr>
           ))}
         </tbody>

@@ -115,8 +115,13 @@ async function runOnce(step: Step, ctx: TemplateContext, meta: Record<string, un
     }
     case "fetch": {
       const resolved = resolve<unknown>(step.urls, ctx);
-      const urls = (Array.isArray(resolved) ? resolved.flat() : [resolved]).map(String).filter(Boolean);
-      if (!urls.length) throw new Error("fetch step resolved to zero URLs");
+      // Drop empty values before stringifying, so a wrong path fails here instead of fetching "https://undefined".
+      const urls = (Array.isArray(resolved) ? resolved.flat() : [resolved])
+        .filter((u) => u !== undefined && u !== null && u !== "")
+        .map(String);
+      if (!urls.length) {
+        throw new Error(`fetch urls ${JSON.stringify(step.urls)} resolved to no URLs (got ${JSON.stringify(resolved) ?? "undefined"}); check the template path`);
+      }
       const r = await fetchPages({
         urls,
         purpose: step.purpose && resolve<string>(step.purpose, ctx),

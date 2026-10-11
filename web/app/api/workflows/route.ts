@@ -5,7 +5,7 @@ import { apiError, readJson } from "../../../lib/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SOURCES: VersionSource[] = ["learned", "web", "cli", "import"];
+const SOURCES: VersionSource[] = ["learned", "web", "cli", "import", "repair"];
 
 export async function GET() {
   return Response.json({ workflows: listWorkflows() });

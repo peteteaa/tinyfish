@@ -5,7 +5,7 @@ import type { Content } from "@google/genai";
 import { z } from "zod";
 import { WORKFLOW_FORMAT } from "./compile.js";
 import { log } from "./env.js";
-import { candidateContent, gemini, geminiSchema, MODEL, textOf } from "./llm.js";
+import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
 import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { diffWorkflows, hasChanges } from "./diff.js";
 import type { WorkflowDiff } from "./store/types.js";
@@ -42,7 +42,21 @@ export interface EditResult {
   changed: boolean;
 }
 
-export async function editWorkflow(current: Workflow, instruction: string, history: EditTurn[] = []): Promise<EditResult> {
+export interface EditOptions {
+  /** Extra rules appended to the system prompt (e.g. how to repair). */
+  rules?: string;
+  /** Extra prompt blocks placed before the request (e.g. run evidence). */
+  context?: string;
+  /** Extra checks on a proposal; returned errors go back to Gemini like validation errors. */
+  validate?: (proposed: Workflow) => string[];
+}
+
+export async function editWorkflow(
+  current: Workflow,
+  instruction: string,
+  history: EditTurn[] = [],
+  opts: EditOptions = {},
+): Promise<EditResult> {
   const base = validateWorkflow(current);
   if (!base.ok) throw new Error(`The current workflow is invalid:\n- ${base.errors.join("\n- ")}`);
   const { version, source, ...editable } = base.workflow;
@@ -56,6 +70,7 @@ export async function editWorkflow(current: Workflow, instruction: string, histo
     `<current_workflow>\n${JSON.stringify(editable, null, 2)}\n</current_workflow>`,
     source?.goal ? `<original_goal>\n${source.goal}\n</original_goal>` : "",
     earlier ? `<earlier_conversation>\n${earlier}\n</earlier_conversation>` : "",
+    opts.context ?? "",
     `<request>\n${instruction}\n</request>`,
   ]
     .filter(Boolean)
@@ -63,10 +78,10 @@ export async function editWorkflow(current: Workflow, instruction: string, histo
 
   const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await gemini().models.generateContent({
+    const response = await generate({
       model: MODEL,
       contents,
-      config: { systemInstruction: SYSTEM, responseMimeType: "application/json" },
+      config: { systemInstruction: opts.rules ? `${SYSTEM}\n\n${opts.rules}` : SYSTEM, responseMimeType: "application/json" },
     });
     const content = candidateContent(response);
     contents.push(content);
@@ -75,14 +90,15 @@ export async function editWorkflow(current: Workflow, instruction: string, histo
       const parsed = JSON.parse(textOf(content)) as { reply?: unknown; workflow?: unknown };
       const draft = parsed.workflow && typeof parsed.workflow === "object" ? { ...parsed.workflow, name: current.name } : parsed.workflow;
       const result = validateWorkflow(draft);
-      if (result.ok) {
+      const extra = result.ok ? (opts.validate?.(result.workflow) ?? []) : [];
+      if (result.ok && extra.length === 0) {
         const workflow: Workflow = { ...result.workflow, ...(version !== undefined && { version }), ...(source && { source }) };
         const diff = diffWorkflows(current.name, base.workflow, workflow, version ?? 0, version ?? 0);
         const changed = hasChanges(diff);
         const reply = typeof parsed.reply === "string" && parsed.reply.trim() ? parsed.reply.trim() : changed ? "Updated the workflow." : "No changes.";
         return { workflow, reply, diff, changed };
       }
-      errors = result.errors;
+      errors = result.ok ? extra : result.errors;
     } catch (err) {
       errors = [`Response was not valid JSON: ${err instanceof Error ? err.message : String(err)}`];
     }

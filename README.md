@@ -24,6 +24,8 @@ There is no mock mode: every run calls the real TinyFish and Gemini APIs.
     npm run show -- competitor_pricing          # --version=N, --trace
     npm run runs -- competitor_pricing          # run history
     npx tsx src/cli.ts save my_workflow.json    # save a hand-written workflow as the next version
+    npx tsx src/cli.ts edit competitor_pricing "also extract free trials"   # Gemini edit, saved as next version
+    npx tsx src/cli.ts repair <run_id> [step]   # Gemini fix for a failed step, saved as next version (--dry-run)
 
     npm test          # unit tests plus live TinyFish/Gemini tests (each skipped when its key is missing)
     npm run typecheck
@@ -113,6 +115,9 @@ Run statuses: `ok`, `check_failed` (finished, but a check flagged it for repair)
     src/executor.ts   deterministic runner + checks + run history
     src/explore.ts    phase 1: Gemini + TinyFish tools, records a trace
     src/compile.ts    phase 2: trace -> reusable workflow JSON; learn() = explore + compile + save
+    src/edit.ts       chat edits: Gemini applies a plain-English change to a workflow (validated, not saved)
+    src/repair.ts     repair: Gemini fixes a failed step from the run's evidence; won't weaken a check every item failed
+    src/diff.ts       structural diff between two workflows (shared with the web client)
     src/store.ts      storage facade: versioned workflows (with source), run history, traces, diff
     src/store/        SQLite (default, node:sqlite) and JSON-file backends; STORAGE=sqlite|files
     src/env.ts        .env loading, paths, config
@@ -135,8 +140,8 @@ Run statuses: `ok`, `check_failed` (finished, but a check flagged it for repair)
 
 ## Next
 
-- repair.ts: when a check fails, re-explore just that step, recompile it, save as a new version
-  (`source.repaired_from` is already in the schema; failed checks are in each run record).
+- Repair by re-exploring: today repair (`src/repair.ts`) reasons over the failed run's evidence only. When the data
+  moved to a page the run never fetched, re-explore just that step with TinyFish instead.
 - A fake competitor site you control, for a reliable repair demo.
 - Web UI with live step progress. `runWorkflow` already emits `onEvent` step events and `runAgent` takes
   `onProgress`; wire those to SSE.
