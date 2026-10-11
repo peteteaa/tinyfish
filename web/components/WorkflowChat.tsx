@@ -178,7 +178,9 @@ export function WorkflowChat({
             ? [`Tested ${result.rounds > 1 ? "several fixes" : "the fix"}: still fails at ${result.test?.failed_step ?? "a step"}. Review before saving.`]
             : result.test?.status === "invalid_params"
               ? [`Not tested: ${result.test.failures[0] ?? "the failed run's params don't fit the fix"}.`]
-              : [];
+              : result.test?.status === "not_tested"
+                ? [`Not tested: ${result.test.failures[0] ?? "the fix only changes how the inputs are described"}`]
+                : [];
       apply(before, result, lines);
     } catch (err) {
       fail(err instanceof Error ? err.message : "Lost the connection to the repair. Try again.");

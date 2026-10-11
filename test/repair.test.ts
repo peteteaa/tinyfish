@@ -137,3 +137,27 @@ test(`repairAndVerify (live TinyFish + Gemini, ${MODEL}): fixes a wrong forEach 
   assert.match(String(urls.urls), /find_pricing_pages\.(\*|\d+)\./);
   assert.equal(result.workflow.source?.repaired_from, 1);
 });
+
+test("repair test inputs: a changed default replaces the failed run's value; doc-only fixes aren't testable", async () => {
+  const { affectsRun, changedDefaults } = await import("../src/repair.js");
+  const newDefault = structuredClone(wf);
+  newDefault.params.competitors.default = ["resend.com/pricing", "firecrawl.dev/pricing"];
+  assert.deepEqual([...changedDefaults(wf, newDefault)], ["competitors"]);
+  assert.equal(affectsRun(wf, newDefault), true);
+
+  const reworded = structuredClone(wf);
+  reworded.params.competitors.description = "Pricing page URLs, not homepages";
+  assert.deepEqual([...changedDefaults(wf, reworded)], []);
+  assert.equal(affectsRun(wf, reworded), false);
+
+  // A removed default can't stand in for the run's value, so the run's value is kept.
+  const withDefault = structuredClone(wf);
+  withDefault.params.competitors.default = ["resend.com/pricing"];
+  const removed = structuredClone(withDefault);
+  delete removed.params.competitors.default;
+  assert.deepEqual([...changedDefaults(withDefault, removed)], []);
+
+  const stepFix = structuredClone(wf);
+  (stepFix.steps[1] as { instruction: string }).instruction += " Include free plans.";
+  assert.equal(affectsRun(wf, stepFix), true);
+});

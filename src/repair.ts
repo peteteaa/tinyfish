@@ -3,6 +3,7 @@
 // the proposal and saves it as the next version with source.repaired_from set.
 
 import { summarize } from "./compile.js";
+import { diffWorkflows } from "./diff.js";
 import { editWorkflow, type EditResult, type EditTurn } from "./edit.js";
 import { log } from "./env.js";
 import { isTransientGeminiError } from "./llm.js";
@@ -158,7 +159,7 @@ export type RepairEvent =
   | { kind: "repair_round"; round: number; step: string }
   | { kind: "repair_proposal"; round: number; reply: string; changed: boolean }
   | { kind: "test_step"; round: number; step: string; status?: StepRecord["status"] }
-  | { kind: "test_done"; round: number; status: RunRecord["status"] | "invalid_params"; failed_step?: string; failures: string[] };
+  | { kind: "test_done"; round: number; status: RunRecord["status"] | "invalid_params" | "not_tested"; failed_step?: string; failures: string[] };
 
 export interface VerifiedRepair extends EditResult {
   /** true: a test run passed. false: every fix tried still failed. null: not tested (no change proposed). */
@@ -170,6 +171,23 @@ export interface VerifiedRepair extends EditResult {
 const firstFailed = (run: RunRecord) => run.steps.find((s) => s.status !== "ok");
 const failureLines = (rec?: StepRecord) =>
   rec ? (rec.error ? [rec.error] : rec.checks.filter((c) => !c.passed).map((c) => `${c.check}${c.message ? `: ${c.message}` : ""}`)) : [];
+
+/** Params that exist in both workflows and now have a different default (a removed default doesn't count). */
+export function changedDefaults(before: Workflow, after: Workflow): Set<string> {
+  const json = (v: unknown) => JSON.stringify(v ?? null);
+  return new Set(
+    Object.keys(after.params).filter(
+      (k) => k in before.params && after.params[k].default !== undefined && json(before.params[k].default) !== json(after.params[k].default),
+    ),
+  );
+}
+
+/** Whether a run with the failed run's inputs could behave differently under `after` (steps, output or a param default). */
+export function affectsRun(before: Workflow, after: Workflow, newDefaults = changedDefaults(before, after)): boolean {
+  const d = diffWorkflows(before.name, before, after, 0, 0);
+  const stepsChanged = d.steps.added.length + d.steps.removed.length + d.steps.changed.length > 0 || d.steps.reordered;
+  return stepsChanged || d.output_changed || newDefaults.size > 0;
+}
 
 /** How far a test run got: steps that passed before the first failure, then fewer failed checks. Higher is better. */
 function progress(wf: Workflow, run: RunRecord): number {
@@ -212,7 +230,18 @@ export async function repairAndVerify(
     history.push({ role: "user", text: `Repair step "${step}".` }, { role: "assistant", text: result.reply });
 
     const { version: _v, ...unsaved } = result.workflow;
-    const input = Object.fromEntries(Object.entries(run.params).filter(([k, v]) => k in unsaved.params && v !== undefined && v !== null));
+    // When the run's inputs caused the failure, a test that reuses them fails no matter how good the fix is.
+    // Params whose default the fix changed are tested with the new default. A fix that changes nothing a run with
+    // these inputs would see (e.g. it only rewords a param description) can't be tested: say so instead.
+    const newDefaults = changedDefaults(current, unsaved);
+    if (!affectsRun(current, unsaved, newDefaults)) {
+      const failures = ["The fix only changes how the inputs are described; run again with the inputs it describes."];
+      emit({ kind: "test_done", round, status: "not_tested", failures });
+      return { ...result, verified: null, rounds: round, test: { status: "not_tested", failures } };
+    }
+    const input = Object.fromEntries(
+      Object.entries(run.params).filter(([k, v]) => k in unsaved.params && !newDefaults.has(k) && v !== undefined && v !== null),
+    );
     let test: RunRecord;
     try {
       resolveParams(unsaved, input);
