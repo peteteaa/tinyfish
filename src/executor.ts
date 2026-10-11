@@ -1,7 +1,7 @@
 // Deterministic runner: executes a saved workflow step by step, runs checks, records run history.
-// No LLM decides anything here; Claude is only called inside `extract` steps.
+// No LLM decides anything here; Gemini is only called inside `extract` steps.
 
-import { extract } from "./claude.js";
+import { extract } from "./llm.js";
 import { log } from "./env.js";
 import type { Check, Param, Step, Workflow } from "./schema.js";
 import { getWorkflow, lastSuccessfulRun, newId, saveRun, type CheckResult, type RunRecord, type StepRecord } from "./store.js";
@@ -152,7 +152,7 @@ async function runOnce(step: Step, ctx: TemplateContext, meta: Record<string, un
         schema: step.output_schema,
       });
       const tokens = (meta.tokens as { input: number; output: number }) ?? { input: 0, output: 0 };
-      meta.tokens = { input: tokens.input + usage.input_tokens, output: tokens.output + usage.output_tokens };
+      meta.tokens = { input: tokens.input + usage.input, output: tokens.output + usage.output };
       return value;
     }
   }

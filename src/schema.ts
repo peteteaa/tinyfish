@@ -62,7 +62,12 @@ export const AgentStepSchema = z.object({
   goal: Template,
   output_schema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema for the agent's result"),
   browser_profile: z.enum(["lite", "stealth"]).optional(),
-  max_steps: z.number().int().min(1).optional(),
+  max_steps: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Requires TinyFish beta access; other accounts get a 403. Omit unless you know it's enabled."),
 });
 
 export const ExtractStepSchema = z.object({

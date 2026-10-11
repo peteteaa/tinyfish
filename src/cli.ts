@@ -7,7 +7,7 @@ import { getTrace, getWorkflow, listRuns, listWorkflows, saveWorkflow } from "./
 const USAGE = `workflow-memory
 
   run <name> [--param=value ...] [--version=N]   run a saved workflow (string[] params are comma-separated)
-  learn "<goal>" [--name=snake_name] [--run]     explore with TinyFish + Claude, compile, save (--run: run it after)
+  learn "<goal>" [--name=snake_name] [--run]     explore with TinyFish + Gemini, compile, save (--run: run it after)
   list                                           list saved workflows
   show <name> [--version=N] [--trace]            print a workflow (and the trace it was learned from)
   runs <name> [--limit=N]                        recent run history
@@ -100,7 +100,7 @@ async function main() {
     }
     case "save": {
       const fs = await import("node:fs");
-      const wf = saveWorkflow(JSON.parse(fs.readFileSync(positional[0], "utf8")));
+      const wf = saveWorkflow(JSON.parse(fs.readFileSync(positional[0], "utf8")), "cli");
       out(`Saved ${wf.name} v${wf.version}`);
       return;
     }

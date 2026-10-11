@@ -92,7 +92,7 @@ server.registerTool(
   },
   ({ workflow }) =>
     guarded(() => {
-      const saved = saveWorkflow(workflow);
+      const saved = saveWorkflow(workflow, "cli");
       return { saved: `${saved.name}@v${saved.version}` };
     }),
 );

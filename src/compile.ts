@@ -2,12 +2,11 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type Anthropic from "@anthropic-ai/sdk";
-import { betaTool } from "@anthropic-ai/sdk/helpers/beta/json-schema";
+import type { Content } from "@google/genai";
 import { z } from "zod";
-import { anthropic, FALLBACK } from "./claude.js";
-import { log, MODEL, SEEDS_DIR } from "./env.js";
+import { log, SEEDS_DIR } from "./env.js";
 import { explore, type Trace } from "./explore.js";
+import { candidateContent, gemini, geminiSchema, MODEL, textOf } from "./llm.js";
 import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { listWorkflows, saveWorkflow } from "./store.js";
 
@@ -27,7 +26,7 @@ Step types:
 - search  {query, purpose?, include_domains?, domain_type?} -> {query, results: [{title, url, snippet, ...}]}
 - fetch   {urls (template or list), purpose?, format?, links?} -> {results: [{url, final_url, title, text, links?}], errors: [...]}
 - agent   {url, goal, output_schema?, browser_profile?, max_steps?} -> the agent's structured result (slow, costs credits)
-- extract {input, instruction, output_schema} -> JSON matching output_schema, produced by a small Claude call
+- extract {input, instruction, output_schema} -> JSON matching output_schema, produced by a small Gemini call
 
 Every step has: id (snake_case), description?, forEach?, concurrency?, checks?.
 forEach is a template resolving to an array; the step runs per element with {{item}} bound, and its output is an array.
@@ -48,57 +47,57 @@ Compile guidelines:
    where the trace showed fetch couldn't get the data. If search was used only to discover a stable URL, fetch that URL
    directly (as a param default) instead of searching on every run.
 4. Shape the output with the top-level "output" template so it matches the answer the trace submitted.
-5. Call save_workflow with the complete workflow. If it returns validation errors, fix them and call it again.`;
+5. Reply with only the workflow JSON object, matching <workflow_schema>. If it fails validation you'll get the
+   errors back; reply with the corrected complete workflow.`;
+
+const MAX_ATTEMPTS = 3;
 
 export async function compile(trace: Trace, opts: { name?: string } = {}): Promise<Workflow> {
   const example = fs.readFileSync(path.join(SEEDS_DIR, "competitor_pricing.json"), "utf8");
   const existing = listWorkflows().map((w) => w.name);
-  let compiled: Workflow | undefined;
-
-  const saveTool = betaTool({
-    name: "save_workflow",
-    description: "Validate the compiled workflow. Returns 'saved' or a list of errors to fix.",
-    inputSchema: z.toJSONSchema(WorkflowSchema, { io: "input" }) as { type: "object" },
-    run: async (input) => {
-      const result = validateWorkflow(input);
-      if (!result.ok) {
-        log(`  compile: validation failed (${result.errors.length} errors), retrying`);
-        return `Validation failed:\n- ${result.errors.join("\n- ")}`;
-      }
-      compiled = result.workflow;
-      return "saved";
-    },
-  });
-
   const prompt = [
     `<goal>\n${trace.goal}\n</goal>`,
     `<trace>\n${JSON.stringify(summarize(trace.calls), null, 2)}\n</trace>`,
     `<submitted_answer>\n${JSON.stringify(summarize(trace.answer ?? trace.final_text), null, 2)}\n</submitted_answer>`,
     trace.notes ? `<explorer_notes>\n${trace.notes}\n</explorer_notes>` : "",
+    `<workflow_schema>\n${JSON.stringify(geminiSchema(z.toJSONSchema(WorkflowSchema, { io: "input" })))}\n</workflow_schema>`,
     `<example_workflow>\n${example}\n</example_workflow>`,
     opts.name
       ? `Name the workflow "${opts.name}".`
       : `Pick a short snake_case name. Existing workflows: ${existing.join(", ") || "(none)"}. Reuse a name only if this is the same task.`,
-    "Compile this trace into a workflow and call save_workflow.",
+    "Compile this trace into a workflow. Reply with the workflow JSON only.",
   ]
     .filter(Boolean)
     .join("\n\n");
 
-  const runner = anthropic.beta.messages.toolRunner({
-    model: MODEL,
-    max_tokens: 16000,
-    ...FALLBACK,
-    output_config: { effort: "medium" },
-    max_iterations: 6,
-    system: SYSTEM,
-    tools: [saveTool],
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  let final: Anthropic.Beta.BetaMessage | undefined;
-  for await (const message of runner) final = message;
-  if (final?.stop_reason === "refusal") throw new Error("Compilation was declined (refusal).");
-  if (!compiled) throw new Error("Compiler finished without producing a valid workflow.");
+  const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
+  let compiled: Workflow | undefined;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !compiled; attempt++) {
+    const response = await gemini().models.generateContent({
+      model: MODEL,
+      contents,
+      config: { systemInstruction: SYSTEM, responseMimeType: "application/json" },
+    });
+    const content = candidateContent(response);
+    contents.push(content);
+    let errors: string[];
+    try {
+      const result = validateWorkflow(JSON.parse(textOf(content)));
+      if (result.ok) {
+        compiled = result.workflow;
+        break;
+      }
+      errors = result.errors;
+    } catch (err) {
+      errors = [`Response was not valid JSON: ${err instanceof Error ? err.message : String(err)}`];
+    }
+    log(`  compile: attempt ${attempt} failed validation (${errors.length} errors)`);
+    contents.push({
+      role: "user",
+      parts: [{ text: `Validation failed:\n- ${errors.join("\n- ")}\n\nReply with the corrected complete workflow JSON.` }],
+    });
+  }
+  if (!compiled) throw new Error(`Compiler didn't produce a valid workflow in ${MAX_ATTEMPTS} attempts.`);
 
   compiled.source = { goal: trace.goal, trace_id: trace.id, created_at: new Date().toISOString() };
   return compiled;
@@ -109,7 +108,7 @@ export async function learn(goal: string, opts: { name?: string } = {}) {
   log("Exploring...");
   const trace = await explore(goal);
   log(`Explored with ${trace.calls.length} tool calls (trace ${trace.id}). Compiling...`);
-  const workflow = saveWorkflow(await compile(trace, opts));
+  const workflow = saveWorkflow(await compile(trace, opts), "learned");
   log(`Saved ${workflow.name} v${workflow.version}.`);
   return { trace, workflow };
 }

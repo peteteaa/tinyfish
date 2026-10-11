@@ -1,6 +1,7 @@
 // Thin wrappers over the TinyFish Search, Fetch and Agent APIs.
 // Shapes follow the OpenAPI specs at https://agent.tinyfish.ai/v1/openapi/{search,fetch,main}.
-// Set WM_DEBUG=1 to log raw responses (day-1 verification).
+// Search, Fetch and Agent shapes were checked against the live API on 2026-10-11.
+// Set WM_DEBUG=1 to log raw responses.
 
 import { DEBUG, log, requireEnv } from "./env.js";
 

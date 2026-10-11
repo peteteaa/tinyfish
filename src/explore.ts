@@ -1,10 +1,9 @@
-// Phase 1: Claude solves the task with TinyFish tools while we record every call into a trace.
+// Phase 1: Gemini solves the task with TinyFish tools while we record every call into a trace.
 
-import type Anthropic from "@anthropic-ai/sdk";
-import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
+import type { Content, FunctionCall, Part } from "@google/genai";
 import { z } from "zod";
-import { anthropic, FALLBACK } from "./claude.js";
-import { log, MODEL } from "./env.js";
+import { log } from "./env.js";
+import { candidateContent, gemini, geminiSchema, MODEL, textOf } from "./llm.js";
 import { newId, saveTrace } from "./store.js";
 import { fetchPages, runAgent, search } from "./tinyfish.js";
 
@@ -28,7 +27,7 @@ export interface Trace {
   final_text?: string;
 }
 
-const MAX_TOOL_TEXT = 15_000; // chars of page text shown to Claude per page
+const MAX_TOOL_TEXT = 15_000; // chars of page text shown to the model per page
 const MAX_TRACE_TEXT = 50_000; // chars of page text kept in the trace per page
 
 function clip(s: string, n: number) {
@@ -51,41 +50,57 @@ parameterized workflow, so solve the task the way you'd want it repeated:
 - Be direct. Don't make exploratory calls you won't need; every call you make may be replayed on every rerun.
 - When you have the answer, call submit_answer exactly once with the structured result, then stop.`;
 
+interface Tool<S extends z.ZodType> {
+  name: string;
+  description: string;
+  schema: S;
+  run: (input: z.infer<S>) => Promise<Record<string, unknown>>;
+}
+
+const tool = <S extends z.ZodType>(t: Tool<S>) => t;
+
 export async function explore(goal: string, opts: { maxIterations?: number } = {}): Promise<Trace> {
   const trace: Trace = { id: newId(), goal, model: MODEL, started_at: new Date().toISOString(), calls: [] };
+  let submitted = false;
 
-  async function recorded<T>(tool: string, input: unknown, fn: () => Promise<T>, toClaude: (out: T) => unknown, toTrace: (out: T) => unknown = (o) => o) {
+  async function recorded<T>(
+    name: string,
+    input: unknown,
+    fn: () => Promise<T>,
+    toModel: (out: T) => unknown,
+    toTrace: (out: T) => unknown = (o) => o,
+  ): Promise<Record<string, unknown>> {
     const started = Date.now();
-    log(`  -> ${tool} ${JSON.stringify(input).slice(0, 160)}`);
+    log(`  -> ${name} ${JSON.stringify(input).slice(0, 160)}`);
     try {
       const out = await fn();
-      trace.calls.push({ tool, input, output: toTrace(out), duration_ms: Date.now() - started });
-      return JSON.stringify(toClaude(out));
+      trace.calls.push({ tool: name, input, output: toTrace(out), duration_ms: Date.now() - started });
+      return { output: toModel(out) };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      trace.calls.push({ tool, input, error: message, duration_ms: Date.now() - started });
+      trace.calls.push({ tool: name, input, error: message, duration_ms: Date.now() - started });
       log(`     error: ${message}`);
-      return `Error: ${message}`;
+      return { error: message };
     }
   }
 
   const tools = [
-    betaZodTool({
+    tool({
       name: "tinyfish_search",
       description: "Web search. Returns ranked results with title, url and snippet. Free and fast.",
-      inputSchema: z.object({
+      schema: z.object({
         query: z.string(),
         purpose: z.string().optional().describe("Why you are searching; improves ranking"),
         include_domains: z.string().optional().describe("Comma-separated domains to restrict to"),
       }),
       run: (input) => recorded("tinyfish_search", input, () => search(input), (r) => r.results),
     }),
-    betaZodTool({
+    tool({
       name: "tinyfish_fetch",
       description:
         "Fetch one or more URLs and return clean page text (markdown by default). Free and fast. " +
         "Does not run interactions; for pages that need clicks or forms use tinyfish_agent.",
-      inputSchema: z.object({
+      schema: z.object({
         urls: z.array(z.string()).min(1).max(10),
         purpose: z.string().optional(),
         links: z.boolean().optional().describe("Also return outbound links from each page"),
@@ -99,12 +114,12 @@ export async function explore(goal: string, opts: { maxIterations?: number } = {
           (r) => clipFetchText(r, MAX_TRACE_TEXT),
         ),
     }),
-    betaZodTool({
+    tool({
       name: "tinyfish_agent",
       description:
         "Run a browser agent on a URL with a natural-language goal; returns its structured result. " +
         "Slow (often minutes) and costs credits. Use only when the task needs interaction.",
-      inputSchema: z.object({
+      schema: z.object({
         url: z.string(),
         goal: z.string().describe("Specific instructions, including what to return"),
         output_schema: z.record(z.string(), z.unknown()).optional().describe("JSON Schema for the result"),
@@ -118,10 +133,10 @@ export async function explore(goal: string, opts: { maxIterations?: number } = {
           (r) => ({ run_id: r.run_id, status: r.status, result: r.result, error: r.error, num_of_steps: r.num_of_steps }),
         ),
     }),
-    betaZodTool({
+    tool({
       name: "submit_answer",
       description: "Submit the final structured answer to the task. Call exactly once, at the end.",
-      inputSchema: z.object({
+      schema: z.object({
         answer: z.unknown().describe("The final result as structured JSON"),
         notes: z
           .string()
@@ -131,32 +146,66 @@ export async function explore(goal: string, opts: { maxIterations?: number } = {
       run: async (input) => {
         trace.answer = input.answer;
         trace.notes = input.notes;
-        return "Answer recorded. You're done.";
+        submitted = true;
+        return { output: "Answer recorded. You're done." };
       },
     }),
   ];
+  const byName = new Map(tools.map((t) => [t.name, t]));
 
-  const runner = anthropic.beta.messages.toolRunner({
-    model: MODEL,
-    max_tokens: 16000,
-    ...FALLBACK,
-    output_config: { effort: "medium" },
-    max_iterations: opts.maxIterations ?? 30,
-    system: SYSTEM,
-    tools,
-    messages: [{ role: "user", content: goal }],
-  });
-
-  let final: Anthropic.Beta.BetaMessage | undefined;
-  for await (const message of runner) {
-    final = message;
-    for (const b of message.content) if (b.type === "text" && b.text.trim()) log(`  claude: ${b.text.trim().slice(0, 300)}`);
+  async function call(fc: FunctionCall): Promise<Part> {
+    const t = byName.get(fc.name ?? "");
+    let response: Record<string, unknown>;
+    if (!t) {
+      response = { error: `Unknown tool "${fc.name}". Available: ${[...byName.keys()].join(", ")}` };
+    } else {
+      // The model's arguments aren't schema-guaranteed; validate before running anything.
+      const parsed = t.schema.safeParse(fc.args ?? {});
+      response = parsed.success
+        ? await (t.run as (i: unknown) => Promise<Record<string, unknown>>)(parsed.data)
+        : { error: `Invalid arguments: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}` };
+    }
+    return { functionResponse: { id: fc.id, name: fc.name, response } };
   }
-  if (final?.stop_reason === "refusal") throw new Error("Exploration was declined (refusal).");
-  trace.final_text = final?.content
-    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
+
+  const contents: Content[] = [{ role: "user", parts: [{ text: goal }] }];
+  const config = {
+    systemInstruction: SYSTEM,
+    tools: [
+      {
+        functionDeclarations: tools.map((t) => ({
+          name: t.name,
+          description: t.description,
+          parametersJsonSchema: geminiSchema(z.toJSONSchema(t.schema, { io: "input" })),
+        })),
+      },
+    ],
+  };
+
+  const maxIterations = opts.maxIterations ?? 30;
+  let finalText = "";
+  for (let i = 0; i < maxIterations; i++) {
+    const response = await gemini().models.generateContent({ model: MODEL, contents, config });
+    const content = candidateContent(response);
+    // Append the model turn verbatim: Gemini 3 requires its thought signatures back on the next request.
+    contents.push(content);
+    const text = textOf(content).trim();
+    if (text) {
+      finalText = text;
+      log(`  model: ${text.slice(0, 300)}`);
+    }
+    const calls = (content.parts ?? []).flatMap((p) => (p.functionCall ? [p.functionCall] : []));
+    if (!calls.length) break;
+    // Parallel calls in one turn: run them together and answer them all in a single user turn.
+    contents.push({ role: "user", parts: await Promise.all(calls.map(call)) });
+    if (submitted) {
+      // Let the model wrap up only if it wants to; the answer is already recorded.
+      break;
+    }
+  }
+  if (!submitted) log(`  warning: exploration ended without submit_answer`);
+
+  trace.final_text = finalText;
   trace.finished_at = new Date().toISOString();
   saveTrace(trace.id, trace);
   return trace;

@@ -11,7 +11,7 @@ const { resolve } = await import("../src/template.js");
 const { validateWorkflow } = await import("../src/schema.js");
 const { runCheck, resolveParams, runWorkflow } = await import("../src/executor.js");
 const { getWorkflow, listRuns, listWorkflows, saveWorkflow } = await import("../src/store.js");
-const { toStrictSchema } = await import("../src/claude.js");
+const { geminiSchema } = await import("../src/llm.js");
 
 const ctx = {
   params: { competitors: ["a.com", "b.com"], n: 2 },
@@ -75,12 +75,11 @@ test("params: coercion, defaults, required, unknown", () => {
   assert.throws(() => resolveParams(wf, { competitors: "a", oops: 1 }), /Unknown params: oops/);
 });
 
-test("toStrictSchema closes objects and wraps non-object roots", () => {
-  const { schema } = toStrictSchema({ type: "object", properties: { a: { type: "object", properties: { b: { type: "string" } } } } });
-  assert.deepEqual(schema.required, ["a"]);
-  assert.equal(schema.additionalProperties, false);
-  assert.equal((schema.properties as any).a.additionalProperties, false);
-  assert.equal(toStrictSchema({ type: "array", items: { type: "string" } }).wrapped, true);
+test("geminiSchema strips $schema at every level and keeps the rest", () => {
+  const out = geminiSchema({ $schema: "x", type: "object", properties: { a: { $schema: "y", type: "string" } } }) as any;
+  assert.equal(out.$schema, undefined);
+  assert.equal(out.properties.a.$schema, undefined);
+  assert.equal(out.properties.a.type, "string");
 });
 
 // Live: real TinyFish Fetch calls (free). Skipped, not faked, when no key is configured.

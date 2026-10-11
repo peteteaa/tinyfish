@@ -1,166 +1,38 @@
-// JSON-file storage.
-//
-//   data/workflows/<name>/v<N>.json   versioned workflows (latest = highest N)
-//   data/runs/<name>/<run_id>.json    run history
-//   data/traces/<trace_id>.json       exploration traces from `learn`
-//
-// Workflows in seeds/ are copied in as v1 the first time the store is touched.
+// Workflow/run/trace storage. Two backends behind one interface (see src/store/):
+//   sqlite (default)  <data>/workflow-memory.db
+//   files             <data>/workflows, runs, traces as JSON files
+// Select with STORAGE=sqlite|files. Workflows in seeds/ are inserted as v1 (source "import") on first touch.
 
-import fs from "node:fs";
-import path from "node:path";
-import { DATA_DIR, SEEDS_DIR } from "./env.js";
-import { validateWorkflow, type Workflow } from "./schema.js";
+import { DATA_DIR, SEEDS_DIR, STORAGE } from "./env.js";
+import type { Workflow } from "./schema.js";
+import { makeStore } from "./store/common.js";
+import { filesBackend } from "./store/files.js";
+import { sqliteBackend } from "./store/sqlite.js";
+import type { RunRecord, Store, VersionSource } from "./store/types.js";
 
-const WF_DIR = path.join(DATA_DIR, "workflows");
-const RUNS_DIR = path.join(DATA_DIR, "runs");
-const TRACES_DIR = path.join(DATA_DIR, "traces");
+export type { CheckResult, RunRecord, StepRecord, Store, VersionInfo, VersionSource, WorkflowDiff, WorkflowSummary } from "./store/types.js";
 
-function readJson<T>(file: string): T {
-  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+export function createStore(kind: "sqlite" | "files", dataDir: string): Store {
+  return makeStore(kind === "sqlite" ? sqliteBackend(dataDir) : filesBackend(dataDir), SEEDS_DIR);
 }
 
-function writeJson(file: string, value: unknown) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
-}
+let defaultStore: Store | undefined;
+const def = () => (defaultStore ??= createStore(STORAGE, DATA_DIR));
 
-let seeded = false;
-function ensureSeeded() {
-  if (seeded) return;
-  seeded = true;
-  if (!fs.existsSync(SEEDS_DIR)) return;
-  for (const f of fs.readdirSync(SEEDS_DIR).filter((f) => f.endsWith(".json"))) {
-    const wf = readJson<Workflow>(path.join(SEEDS_DIR, f));
-    if (!fs.existsSync(path.join(WF_DIR, wf.name))) writeJson(path.join(WF_DIR, wf.name, "v1.json"), { ...wf, version: 1 });
-  }
-}
-
-function versionsOf(name: string): number[] {
-  const dir = path.join(WF_DIR, name);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .map((f) => f.match(/^v(\d+)\.json$/)?.[1])
-    .filter((v): v is string => !!v)
-    .map(Number)
-    .sort((a, b) => a - b);
-}
-
-export interface WorkflowSummary {
-  name: string;
-  latest: number;
-  versions: number[];
-  description: string;
-  params: Workflow["params"];
-  last_run?: { run_id: string; status: RunRecord["status"]; finished_at: string };
-}
-
-export function listWorkflows(): WorkflowSummary[] {
-  ensureSeeded();
-  if (!fs.existsSync(WF_DIR)) return [];
-  return fs
-    .readdirSync(WF_DIR)
-    .filter((n) => versionsOf(n).length)
-    .sort()
-    .map((name) => {
-      const versions = versionsOf(name);
-      const wf = getWorkflow(name)!;
-      const last = listRuns(name, 1)[0];
-      return {
-        name,
-        latest: versions.at(-1)!,
-        versions,
-        description: wf.description,
-        params: wf.params,
-        last_run: last && { run_id: last.run_id, status: last.status, finished_at: last.finished_at },
-      };
-    });
-}
-
-export function getWorkflow(name: string, version?: number): Workflow | undefined {
-  ensureSeeded();
-  const v = version ?? versionsOf(name).at(-1);
-  if (!v) return undefined;
-  const file = path.join(WF_DIR, name, `v${v}.json`);
-  return fs.existsSync(file) ? readJson<Workflow>(file) : undefined;
-}
-
-/** Validates and saves as the next version. Returns the saved workflow (with version set). */
-export function saveWorkflow(input: unknown): Workflow {
-  ensureSeeded();
-  const result = validateWorkflow(input);
-  if (!result.ok) throw new Error(`Invalid workflow:\n- ${result.errors.join("\n- ")}`);
-  const version = (versionsOf(result.workflow.name).at(-1) ?? 0) + 1;
-  const wf: Workflow = { ...result.workflow, version };
-  writeJson(path.join(WF_DIR, wf.name, `v${version}.json`), wf);
-  return wf;
-}
-
-// ---------- Runs ----------
-
-export interface CheckResult {
-  check: string;
-  passed: boolean;
-  message?: string;
-}
-
-export interface StepRecord {
-  id: string;
-  type: string;
-  status: "ok" | "check_failed" | "error";
-  started_at: string;
-  duration_ms: number;
-  output?: unknown;
-  error?: string;
-  checks: CheckResult[];
-  meta?: Record<string, unknown>;
-}
-
-export interface RunRecord {
-  run_id: string;
-  workflow: string;
-  version: number;
-  params: Record<string, unknown>;
-  status: "ok" | "check_failed" | "error";
-  started_at: string;
-  finished_at: string;
-  duration_ms: number;
-  steps: StepRecord[];
-  output?: unknown;
-  error?: string;
-}
-
-export function saveRun(run: RunRecord) {
-  writeJson(path.join(RUNS_DIR, run.workflow, `${run.run_id}.json`), run);
-}
-
+export const listWorkflows = () => def().listWorkflows();
+export const getWorkflow = (name: string, version?: number) => def().getWorkflow(name, version);
+export const saveWorkflow = (input: unknown, source: VersionSource = "cli"): Workflow => def().saveWorkflow(input, source);
+export const listVersions = (name: string) => def().listVersions(name);
+export const diff = (name: string, from: number, to: number) => def().diff(name, from, to);
+export const saveRun = (run: RunRecord) => def().saveRun(run);
+export const getRun = (runId: string) => def().getRun(runId);
 /** Most recent first. */
-export function listRuns(name: string, limit = 20): RunRecord[] {
-  const dir = path.join(RUNS_DIR, name);
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .reverse()
-    .slice(0, limit)
-    .map((f) => readJson<RunRecord>(path.join(dir, f)));
-}
-
+export const listRuns = (name: string, limit = 20) => def().listRuns(name, limit);
 /** The latest successful run, used to resolve {{previous.<step>}}. */
-export function lastSuccessfulRun(name: string): RunRecord | undefined {
-  return listRuns(name, 200).find((r) => r.status === "ok");
-}
-
-// ---------- Traces ----------
-
-export function saveTrace(id: string, trace: unknown) {
-  writeJson(path.join(TRACES_DIR, `${id}.json`), trace);
-}
-
+export const lastSuccessfulRun = (name: string) => def().lastSuccessfulRun(name);
+export const saveTrace = (id: string, trace: unknown) => def().saveTrace(id, trace);
 export function getTrace<T = unknown>(id: string): T | undefined {
-  const file = path.join(TRACES_DIR, `${id}.json`);
-  return fs.existsSync(file) ? readJson<T>(file) : undefined;
+  return def().getTrace<T>(id);
 }
 
 /** Sortable, filesystem-safe id: 2026-10-11T12-00-00-000Z-ab12cd */

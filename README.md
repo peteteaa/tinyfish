@@ -6,9 +6,11 @@ compiled into a saved, parameterized workflow, and anyone (human or agent) can r
 ## Setup
 
     npm install
-    cp .env.example .env   # add TINYFISH_API_KEY and ANTHROPIC_API_KEY
+    cp .env.example .env   # add TINYFISH_API_KEY and GEMINI_API_KEY
 
-Requires Node 22+.
+Requires Node 22.13+ (uses the built-in `node:sqlite`).
+
+There is no mock mode: every run calls the real TinyFish and Gemini APIs.
 
 ## Commands
 
@@ -23,8 +25,15 @@ Requires Node 22+.
     npm run runs -- competitor_pricing          # run history
     npx tsx src/cli.ts save my_workflow.json    # save a hand-written workflow as the next version
 
-    npm test          # offline tests (TinyFish is stubbed)
+    npm test          # unit tests, plus a live TinyFish test that is skipped without TINYFISH_API_KEY
     npm run typecheck
+
+    npm run web:build && PORT=3000 npm run web:start   # web app (M0: library page + /api/health)
+    PORT=3000 npm run web:dev
+
+TinyFish is the only web layer: `src/tinyfish.ts` is the only module that calls out to the web, and Gemini never
+gets its built-in web tools. `test/web-boundary.test.ts` fails the build if anything else reaches the web or
+imports a scraping, browser or other LLM library.
 
 Results go to stdout as JSON and progress goes to stderr, so `npm run -s run-wf -- ... > out.json` works.
 Exit code is 1 when a run errors or a check fails.
@@ -36,7 +45,7 @@ Exit code is 1 when a run errors or a check fails.
         "workflow-memory": {
           "command": "npx",
           "args": ["tsx", "/absolute/path/to/workflow-memory/src/mcp.ts"],
-          "env": { "TINYFISH_API_KEY": "...", "ANTHROPIC_API_KEY": "..." }
+          "env": { "TINYFISH_API_KEY": "...", "GEMINI_API_KEY": "..." }
         }
       }
     }
@@ -48,13 +57,13 @@ Tools: list_workflows, run_workflow, learn_workflow, save_workflow, get_workflow
 
 **learn** = explore, then compile.
 
-1. **Explore** (`src/explore.ts`): Claude solves the goal with four tools, `tinyfish_search`, `tinyfish_fetch`,
+1. **Explore** (`src/explore.ts`): Gemini solves the goal with four tools, `tinyfish_search`, `tinyfish_fetch`,
    `tinyfish_agent` and `submit_answer`, and is told to prefer the free Search and Fetch APIs over the browser agent.
    Every call is recorded in `data/traces/<id>.json`.
-2. **Compile** (`src/compile.ts`): Claude gets the trace and writes a workflow. Concrete values become params whose
+2. **Compile** (`src/compile.ts`): Gemini gets the trace and writes a workflow. Concrete values become params whose
    defaults reproduce the original task. Dead ends are dropped, URLs are batched, and fetch + extract replaces
    the agent where possible. Checks are added. The draft goes through `validateWorkflow`; on failure the errors go
-   back to Claude to fix.
+   back to Gemini to fix (up to 3 attempts).
 3. **Run** (`src/executor.ts`): deterministic. Steps run in order, with no LLM in the loop except inside `extract`
    steps. Checks run on every output, and the run is saved to `data/runs/<name>/`.
 
@@ -80,7 +89,7 @@ Tools: list_workflows, run_workflow, learn_workflow, save_workflow, get_workflow
 | `search` | TinyFish Search (free) | `{query, results: [{title, url, snippet}]}` |
 | `fetch` | TinyFish Fetch (free) | `{results: [{url, final_url, title, text}], errors}` |
 | `agent` | TinyFish Agent (credits) | the agent's `result` |
-| `extract` | Claude, structured outputs, low effort | JSON matching `output_schema` |
+| `extract` | Gemini (`gemini-3.5-flash-lite`), JSON schema output | JSON matching `output_schema` |
 
 Any step can take `forEach` (runs once per array element, bound to `{{item}}`), `concurrency` (default 4)
 and `checks` (`not_empty`, `min_items`, `required_keys`, `regex`, each with an optional dotted `path`).
@@ -96,27 +105,29 @@ Run statuses: `ok`, `check_failed` (finished, but a check flagged it for repair)
     src/schema.ts     workflow format (zod) + reference validation
     src/template.ts   {{params.x}} / {{steps.id}} / {{previous.id}} / {{item}} resolution
     src/tinyfish.ts   Search / Fetch / Agent wrappers
-    src/claude.ts     Anthropic client + the extract step
+    src/llm.ts        Gemini client (reasoning only, no web tools) + the extract step
     src/executor.ts   deterministic runner + checks + run history
-    src/explore.ts    phase 1: Claude + TinyFish tools, records a trace
+    src/explore.ts    phase 1: Gemini + TinyFish tools, records a trace
     src/compile.ts    phase 2: trace -> reusable workflow JSON; learn() = explore + compile + save
-    src/store.ts      JSON-file storage, versioned workflows, run history, traces
+    src/store.ts      storage facade: versioned workflows (with source), run history, traces, diff
+    src/store/        SQLite (default, node:sqlite) and JSON-file backends; STORAGE=sqlite|files
     src/env.ts        .env loading, paths, config
     src/cli.ts        CLI
     src/mcp.ts        MCP server (stdio)
     seeds/            hand-written workflows, copied into data/ as v1 on first use
-    test/             offline tests
+    web/              Next.js app (App Router, webpack; imports core through @core/*)
+    test/             unit tests, live TinyFish test, store tests (both backends), web-boundary check
 
-## Day-1 verification
+## TinyFish API notes (checked against the live API, 2026-10-11)
 
-The TinyFish wrappers were written from the official OpenAPI specs
-(`https://agent.tinyfish.ai/v1/openapi/{search,fetch,main}`) but haven't been run against the live API yet.
-
-- Run with `WM_DEBUG=1` to log raw Search/Fetch/Agent responses and confirm their shapes; adjust `tinyfish.ts` if needed.
+- Search and Fetch response shapes match `src/tinyfish.ts`. Fetch reports per-URL failures in `errors[]`
+  (e.g. `{ error: "page_not_found", status: 404 }`) while the request itself succeeds.
 - Agent calls use `POST /v1/automation/run-async`, then poll `GET /v1/runs/{id}` until the status is
-  `COMPLETED`/`FAILED`/`CANCELLED`. They don't use the synchronous `/run`, because long runs would hit HTTP timeouts.
-  Confirm the `status`, `result` and `error` fields.
-- Run the seed workflow end to end before touching learn.
+  `COMPLETED`/`FAILED`/`CANCELLED` (not the synchronous `/run`, so long runs don't hit HTTP timeouts).
+  `result` follows the `output_schema` you pass.
+- `agent_config.max_steps` returns 403 unless the TinyFish account is in their beta program, so agent steps
+  should leave `max_steps` unset.
+- Set `WM_DEBUG=1` to log raw responses.
 
 ## Next
 

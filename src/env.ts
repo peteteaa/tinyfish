@@ -9,7 +9,6 @@ export const ROOT = path.resolve(process.env.WM_ROOT ?? path.join(path.dirname(f
 const envFile = path.join(ROOT, ".env");
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 
-export const MODEL = process.env.WM_MODEL ?? "claude-opus-5-5";
 export const DATA_DIR = path.resolve(process.env.WM_DATA_DIR ?? path.join(ROOT, "data"));
 export const SEEDS_DIR = path.join(ROOT, "seeds");
 export const STORAGE: "sqlite" | "files" = process.env.STORAGE === "files" ? "files" : "sqlite";
