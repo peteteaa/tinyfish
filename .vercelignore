@@ -1,0 +1,8 @@
+# Local-only: never upload the SQLite data, env files or build output.
+data
+.env
+.env.*
+!.env.example
+node_modules
+web/.next
+web/node_modules
