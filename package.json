@@ -1,0 +1,30 @@
+{
+  "name": "workflow-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Solve a web task once with TinyFish, compile it into a reusable workflow, rerun it cheaply.",
+  "scripts": {
+    "run-wf": "tsx src/cli.ts run",
+    "learn": "tsx src/cli.ts learn",
+    "list": "tsx src/cli.ts list",
+    "show": "tsx src/cli.ts show",
+    "runs": "tsx src/cli.ts runs",
+    "mcp": "tsx src/mcp.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

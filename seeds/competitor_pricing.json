@@ -1,0 +1,56 @@
+{
+  "name": "competitor_pricing",
+  "description": "Fetch competitors' pricing pages and extract their plans (name, price, billing period, key features).",
+  "params": {
+    "competitors": {
+      "type": "string[]",
+      "description": "Pricing page URLs (scheme optional), comma-separated on the CLI",
+      "required": true
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_pages",
+      "type": "fetch",
+      "description": "Read every pricing page in one Fetch call",
+      "urls": "{{params.competitors}}",
+      "purpose": "Extract pricing plans and prices",
+      "checks": [{ "type": "min_items", "path": "results", "value": 1 }]
+    },
+    {
+      "id": "extract_plans",
+      "type": "extract",
+      "description": "Turn each page's markdown into structured plans",
+      "forEach": "{{steps.fetch_pages.results}}",
+      "input": "Source URL: {{item.final_url}}\n\n{{item.text}}",
+      "instruction": "Extract every pricing plan on this page. Use the price as displayed (keep currency symbols). Use null for custom/contact-sales pricing.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "company": { "type": "string" },
+          "url": { "type": "string" },
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "price": { "type": ["string", "null"] },
+                "billing_period": { "type": ["string", "null"] },
+                "features": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "checks": [
+        { "type": "required_keys", "keys": ["company"] },
+        { "type": "min_items", "path": "plans", "value": 1 }
+      ]
+    }
+  ],
+  "output": {
+    "pricing": "{{steps.extract_plans}}",
+    "failed_urls": "{{steps.fetch_pages.errors}}"
+  }
+}
