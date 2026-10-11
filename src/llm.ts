@@ -155,36 +155,54 @@ export function geminiSchema(schema: unknown): unknown {
   );
 }
 
+/** Enough for large extractions; a model stuck repeating itself stops here in seconds instead of minutes. */
+const EXTRACT_MAX_OUTPUT_TOKENS = 8_192;
+
+const EXTRACT_SYSTEM =
+  "You extract structured data from web page content. Use only facts present in the content. " +
+  "If a field is not present in the content, use null or an empty list. Never invent or paraphrase values; " +
+  "copy text as it appears, keeping each string value short (a name, a price, a phrase), never commentary.";
+
 /** The `extract` step: pull structured data out of fetched text. */
 export async function extract(args: {
   input: string;
   instruction: string;
   schema: Record<string, unknown>;
-}): Promise<{ value: unknown; usage: { input: number; output: number } }> {
-  const response = await generate({
-    model: FAST_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: `<instruction>\n${args.instruction}\n</instruction>\n\n<content>\n${args.input}\n</content>` }],
+}): Promise<{ value: unknown; usage: { input: number; output: number }; model: string }> {
+  // Small models sometimes derail on long pages (runaway output, broken JSON). Try once more on the next model.
+  const models = [FAST_MODEL, ...FALLBACK_MODELS.filter((m) => m !== FAST_MODEL)].slice(0, 2);
+  let lastError: unknown;
+  for (const model of models) {
+    const response = await generate({
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `<instruction>\n${args.instruction}\n</instruction>\n\n<content>\n${args.input}\n</content>` }],
+        },
+      ],
+      config: {
+        systemInstruction: EXTRACT_SYSTEM,
+        temperature: 0,
+        maxOutputTokens: EXTRACT_MAX_OUTPUT_TOKENS,
+        responseMimeType: "application/json",
+        responseJsonSchema: geminiSchema(args.schema),
       },
-    ],
-    config: {
-      systemInstruction:
-        "You extract structured data from web page content. Use only facts present in the content. " +
-        "If a field is not present in the content, use null or an empty list. Never invent or paraphrase values; " +
-        "copy text as it appears.",
-      responseMimeType: "application/json",
-      responseJsonSchema: geminiSchema(args.schema),
-    },
-  });
-  const text = textOf(candidateContent(response));
-  if (!text) throw new Error("Extraction returned no text.");
-  return {
-    value: JSON.parse(text),
-    usage: {
-      input: response.usageMetadata?.promptTokenCount ?? 0,
-      output: response.usageMetadata?.candidatesTokenCount ?? 0,
-    },
-  };
+    });
+    try {
+      const text = textOf(candidateContent(response));
+      if (!text) throw new Error("Extraction returned no text.");
+      return {
+        value: JSON.parse(text),
+        usage: { input: response.usageMetadata?.promptTokenCount ?? 0, output: response.usageMetadata?.candidatesTokenCount ?? 0 },
+        model: response.modelVersion ?? model,
+      };
+    } catch (err) {
+      lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
+      log(`  extract: ${model} failed (${message.slice(0, 120)})`);
+      if (model !== models.at(-1)) notice(`Extraction on ${model} failed (${message.slice(0, 80)}); retrying on ${models.at(-1)}.`);
+    }
+  }
+  throw lastError;
 }

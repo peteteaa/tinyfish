@@ -151,13 +151,14 @@ async function runOnce(step: Step, ctx: TemplateContext, meta: Record<string, un
       const input = resolve<unknown>(step.input, ctx);
       const text = typeof input === "string" ? input : JSON.stringify(input, null, 2);
       if (!text.trim()) throw new Error("extract step input is empty");
-      const { value, usage } = await extract({
+      const { value, usage, model } = await extract({
         input: text,
         instruction: resolve<string>(step.instruction, ctx),
         schema: step.output_schema,
       });
       const tokens = (meta.tokens as { input: number; output: number }) ?? { input: 0, output: 0 };
       meta.tokens = { input: tokens.input + usage.input, output: tokens.output + usage.output };
+      meta.models = [...new Set([...((meta.models as string[]) ?? []), model])];
       return value;
     }
   }
