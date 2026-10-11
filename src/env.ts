@@ -31,6 +31,8 @@ export const STORAGE: "sqlite" | "files" | "postgres" =
       ? "postgres"
       : "sqlite";
 export const DEBUG = process.env.WM_DEBUG === "1";
+/** Where others get the code, for the "use this workflow elsewhere" instructions. */
+export const REPO_URL = process.env.WM_REPO_URL ?? "https://github.com/peteteaa/tinyfish";
 
 /** All diagnostics go to stderr so stdout stays clean for results (and for the MCP stdio transport). */
 export function log(...args: unknown[]) {

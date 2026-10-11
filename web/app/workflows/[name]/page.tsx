@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getWorkflow, listVersions, listRuns } from "@core/store.js";
-import { ROOT } from "@core/env.js";
+import { headers } from "next/headers";
+import { REPO_URL, ROOT } from "@core/env.js";
 import { RunPanel } from "@/components/RunPanel";
 import { RunHistory } from "@/components/RunHistory";
 import { ExportPanel } from "@/components/ExportPanel";
@@ -21,6 +22,8 @@ export default async function WorkflowPage({
   searchParams: Promise<{ learned?: string | string[] }>;
 }) {
   const { name } = await params;
+  const h = await headers();
+  const siteUrl = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000"}`;
   const { learned: learnedRaw } = await searchParams;
   const wf = await getWorkflow(name);
   if (!wf) notFound();
@@ -46,7 +49,15 @@ export default async function WorkflowPage({
 
         <WorkflowEditor workflow={wf} testParams={runs[0]?.params} />
 
-        <ExportPanel name={wf.name} root={ROOT} params={wf.params} />
+        <ExportPanel
+          name={wf.name}
+          params={wf.params}
+          // Hosted (Vercel): readers have nothing installed and /var/task means nothing to them.
+          local={!process.env.VERCEL}
+          root={ROOT}
+          repoUrl={REPO_URL}
+          siteUrl={siteUrl}
+        />
 
         <section className="panel" aria-labelledby="versions">
           <h2 id="versions">Versions</h2>
