@@ -25,6 +25,8 @@ runner executes without an LLM in the loop (except inside "extract" steps). Reru
 Step types:
 - search  {query, purpose?, include_domains?, domain_type?} -> {query, results: [{title, url, snippet, ...}]}
 - fetch   {urls (template or list), purpose?, format?, links?} -> {results: [{url, final_url, title, text, links?}], errors: [...]}
+          The page's title/main heading is often only in "title", not in "text", so extract inputs built from fetch
+          results should include both, e.g. "Title: {{item.title}}\nURL: {{item.final_url}}\n\n{{item.text}}".
 - agent   {url, goal, output_schema?, browser_profile?, max_steps?} -> the agent's structured result (slow, costs credits)
 - extract {input, instruction, output_schema} -> JSON matching output_schema, produced by a small Gemini call
 

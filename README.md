@@ -25,7 +25,7 @@ There is no mock mode: every run calls the real TinyFish and Gemini APIs.
     npm run runs -- competitor_pricing          # run history
     npx tsx src/cli.ts save my_workflow.json    # save a hand-written workflow as the next version
 
-    npm test          # unit tests, plus a live TinyFish test that is skipped without TINYFISH_API_KEY
+    npm test          # unit tests plus live TinyFish/Gemini tests (each skipped when its key is missing)
     npm run typecheck
 
     npm run web:build && PORT=3000 npm run web:start   # web app (M0: library page + /api/health)

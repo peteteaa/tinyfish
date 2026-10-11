@@ -22,7 +22,7 @@
       "type": "extract",
       "description": "Turn each page's markdown into structured plans",
       "forEach": "{{steps.fetch_pages.results}}",
-      "input": "Source URL: {{item.final_url}}\n\n{{item.text}}",
+      "input": "Title: {{item.title}}\nSource URL: {{item.final_url}}\n\n{{item.text}}",
       "instruction": "Extract every pricing plan on this page. Use the price as displayed (keep currency symbols). Use null for custom/contact-sales pricing.",
       "output_schema": {
         "type": "object",

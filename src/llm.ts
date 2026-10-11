@@ -62,7 +62,8 @@ export async function extract(args: {
     config: {
       systemInstruction:
         "You extract structured data from web page content. Use only facts present in the content. " +
-        "If a field is not present, use null or an empty list rather than guessing.",
+        "If a field is not present in the content, use null or an empty list. Never invent or paraphrase values; " +
+        "copy text as it appears.",
       responseMimeType: "application/json",
       responseJsonSchema: geminiSchema(args.schema),
     },
