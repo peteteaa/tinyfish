@@ -5,7 +5,7 @@ import path from "node:path";
 import type { Content } from "@google/genai";
 import { z } from "zod";
 import { log, SEEDS_DIR } from "./env.js";
-import { explore, type Trace } from "./explore.js";
+import { explore, returnedContent, type Trace } from "./explore.js";
 import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
 import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { listWorkflows, saveWorkflow } from "./store.js";
@@ -84,9 +84,9 @@ export async function compileDetailed(
   trace: Trace,
   opts: { name?: string } = {},
 ): Promise<{ workflow: Workflow; derivedFrom: DerivedFrom }> {
-  // With no TinyFish calls there's nothing to replay; the compiler would only reproduce the explorer's reply
+  // With no TinyFish call that returned content there's nothing to replay; the compiler would only reproduce the explorer's reply
   // (typically "please tell me X") as a workflow that never touches the web.
-  if (!trace.calls.length) {
+  if (!trace.calls.some(returnedContent)) {
     const said = trace.notes || (typeof trace.final_text === "string" ? trace.final_text : "");
     throw new Error(
       `The explorer didn't look anything up on the web, so there's nothing to turn into a workflow.` +

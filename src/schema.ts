@@ -157,5 +157,23 @@ export function validateWorkflow(input: unknown): { ok: true; workflow: Workflow
   }
   if (wf.output !== undefined) checkRefs("output", wf.output, false);
 
+  // TinyFish is the only source of web data; Gemini (extract) may only process what TinyFish returned.
+  // A step is web-derived if it calls TinyFish, or if its input/forEach reads a web-derived step.
+  const WEB = new Set(["search", "fetch", "agent"]);
+  const webDerived = new Set<string>();
+  for (const step of wf.steps) {
+    if (WEB.has(step.type)) {
+      webDerived.add(step.id);
+      continue;
+    }
+    const reads = [step.forEach, step.type === "extract" ? step.input : undefined]
+      .flatMap((v) => refsIn(v))
+      .map((ref) => ref.split("."))
+      .filter(([root, id]) => (root === "steps" || root === "previous") && webDerived.has(id));
+    if (reads.length) webDerived.add(step.id);
+    else errors.push(`steps.${step.id}: an ${step.type} step must read the output of a search, fetch or agent step (directly or through another step), so its data comes from the web`);
+  }
+  if (!wf.steps.some((s) => WEB.has(s.type))) errors.push("steps: a workflow needs at least one search, fetch or agent step");
+
   return errors.length ? { ok: false, errors } : { ok: true, workflow: wf };
 }

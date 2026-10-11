@@ -41,6 +41,11 @@ TinyFish is the only web layer: `src/tinyfish.ts` is the only module that calls 
 gets its built-in web tools. `test/web-boundary.test.ts` fails the build if anything else reaches the web or
 imports a scraping, browser or other LLM library.
 
+Every fact comes from TinyFish. While learning, the explorer can't submit an answer until a TinyFish call has
+returned real content (a goal with a missing input gets an example input, not a reply from memory), and compile
+refuses a trace with no such call. In a workflow, every `extract` step must read the output of a search, fetch or
+agent step (directly or through another extract), so Gemini only structures or summarizes what TinyFish returned.
+
 Results go to stdout as JSON and progress goes to stderr, so `npm run -s run-wf -- ... > out.json` works.
 Exit code is 1 when a run errors or a check fails.
 

@@ -121,9 +121,30 @@ export interface ExploreOptions {
   onTrace?: (index: number, entry: TraceCall) => void;
 }
 
+/** A TinyFish call that actually brought back web content (not an error, not an empty result). */
+export function returnedContent(c: TraceCall): boolean {
+  if (c.error || !c.tool.startsWith("tinyfish_") || c.output == null) return false;
+  const out = c.output as Record<string, unknown>;
+  if (c.tool === "tinyfish_search") return Array.isArray(out.results) && out.results.length > 0;
+  if (c.tool === "tinyfish_fetch") {
+    const pages = Array.isArray(out.results) ? (out.results as { text?: unknown }[]) : [];
+    return pages.some((p) => (typeof p.text === "string" ? p.text.trim().length > 0 : p.text != null));
+  }
+  if (c.tool === "tinyfish_agent") return out.status === "COMPLETED" && out.result != null;
+  return false;
+}
+
+const NO_WEB_YET =
+  "Not accepted: no TinyFish call has returned web content yet, so this answer would come from memory. " +
+  "Use tinyfish_search and/or tinyfish_fetch to read real pages about the task, base every fact on what they " +
+  "return, then call submit_answer.";
+/** Times the model is told to go use the tools when it tries to finish without them. */
+const MAX_NUDGES = 2;
+
 export async function explore(goal: string, opts: ExploreOptions = {}): Promise<Trace> {
   const trace: Trace = { id: newId(), goal, model: MODEL, started_at: new Date().toISOString(), calls: [] };
   let submitted = false;
+  const grounded = () => trace.calls.some(returnedContent);
 
   async function recorded<T>(
     name: string,
@@ -213,6 +234,8 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
           .describe("Anything a future rerun should know: which sources worked, what failed, caveats"),
       }),
       run: async (input) => {
+        // Answers must come from the web via TinyFish, never from the model's memory.
+        if (!grounded()) return { error: NO_WEB_YET };
         trace.answer = input.answer;
         trace.notes = input.notes;
         submitted = true;
@@ -262,6 +285,7 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
 
   const maxIterations = opts.maxIterations ?? 30;
   let finalText = "";
+  let nudges = 0;
   for (let i = 0; i < maxIterations; i++) {
     const response = await generate({ model: MODEL, contents, config });
     const content = candidateContent(response);
@@ -273,7 +297,16 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
       log(`  model: ${text.slice(0, 300)}`);
     }
     const calls = (content.parts ?? []).flatMap((p) => (p.functionCall ? [p.functionCall] : []));
-    if (!calls.length) break;
+    if (!calls.length) {
+      // Stopping (or asking the user a question) without having read the web: send it back to the tools.
+      if (!submitted && !grounded() && nudges < MAX_NUDGES) {
+        nudges++;
+        log(`  no web content yet; nudging the model to use TinyFish (${nudges}/${MAX_NUDGES})`);
+        contents.push({ role: "user", parts: [{ text: NO_WEB_YET }] });
+        continue;
+      }
+      break;
+    }
     // Parallel calls in one turn: run them together and answer them all in a single user turn.
     contents.push({ role: "user", parts: await Promise.all(calls.map(call)) });
     if (submitted) {
@@ -282,6 +315,7 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
     }
   }
   if (!submitted) log(`  warning: exploration ended without submit_answer`);
+  if (!grounded()) log(`  warning: no TinyFish call returned web content`);
 
   trace.final_text = finalText;
   trace.finished_at = new Date().toISOString();
