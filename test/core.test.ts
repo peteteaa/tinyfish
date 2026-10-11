@@ -12,7 +12,7 @@ const { validateWorkflow } = await import("../src/schema.js");
 const { runCheck, resolveParams, runWorkflow } = await import("../src/executor.js");
 const { getWorkflow, listRuns, listWorkflows, saveWorkflow } = await import("../src/store.js");
 const { geminiSchema } = await import("../src/llm.js");
-const { normalizeSchema } = await import("../src/tinyfish.js");
+const { fetchPages, FETCH_MAX_URLS, normalizeSchema } = await import("../src/tinyfish.js");
 
 const ctx = {
   params: { competitors: ["a.com", "b.com"], n: 2 },
@@ -116,5 +116,31 @@ test(
     assert.equal(second.status, "ok");
     assert.deepEqual((second.output as any).before, (first.output as any).titles); // previous = last successful run
     assert.equal(listRuns("fetch_only").length, 2);
+  },
+);
+
+test("checks: * in a path means every element must pass", () => {
+  const out = { plans: [{ name: "Free", price: "$0" }, { name: "Pro", price: "$20" }] };
+  assert.equal(runCheck({ type: "required_keys", path: "plans.*", keys: ["price"] }, out).passed, true);
+  const missing = runCheck({ type: "required_keys", path: "plans.*", keys: ["price"] }, { plans: [{ price: "$0" }, { name: "Team" }] });
+  assert.equal(missing.passed, false);
+  assert.equal(missing.message, "item 1: missing: price");
+  assert.equal(runCheck({ type: "not_empty", path: "plans.*.price" }, { plans: [{ price: null }, { price: "$5" }] }).passed, false);
+  assert.equal(runCheck({ type: "regex", path: "plans.*.price", pattern: "^\\$" }, out).passed, true);
+  assert.equal(runCheck({ type: "min_items", path: "groups.*.items", value: 1 }, { groups: [{ items: [1] }, { items: [] }] }).passed, false);
+  assert.equal(runCheck({ type: "not_empty", path: "plans.*" }, { plans: "x" }).message, "value is not an array");
+  assert.equal(runCheck({ type: "required_keys", path: "plans.*", keys: ["price"] }, { plans: [] }).passed, true); // count is min_items' job
+});
+
+// Live: Fetch rejects more than 10 URLs per request, so fetchPages splits them. Free calls.
+test(
+  `fetchPages (live TinyFish): more than ${FETCH_MAX_URLS} URLs are split into batches`,
+  { skip: !process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set" },
+  async () => {
+    const urls = ["example.com", "example.org", "example.net", "iana.org", "www.iana.org/domains", "www.iana.org/about",
+      "www.iana.org/protocols", "www.iana.org/numbers", "www.iana.org/help", "www.iana.org/contact", "www.iana.org/news"];
+    const r = await fetchPages({ urls });
+    assert.equal(r.results.length + r.errors.length, urls.length);
+    assert.ok(r.results.length >= FETCH_MAX_URLS, JSON.stringify(r.errors));
   },
 );

@@ -75,8 +75,21 @@ function isEmpty(v: unknown): boolean {
 }
 
 export function runCheck(c: Check, output: unknown): CheckResult {
-  const v = c.path ? getPath(output, c.path.split(".")) : output;
   const name = describe(c);
+  const segments = c.path ? c.path.split(".") : [];
+  const star = segments.indexOf("*");
+  if (star >= 0) {
+    // "*" means every element must pass: plans.*.price checks each plan's price, not the list of prices.
+    const items = getPath(output, segments.slice(0, star));
+    if (!Array.isArray(items)) return { check: name, passed: false, message: "value is not an array" };
+    const rest = segments.slice(star + 1).join(".");
+    for (const [i, item] of items.entries()) {
+      const r = runCheck({ ...c, path: rest || undefined }, item);
+      if (!r.passed) return { check: name, passed: false, message: `item ${i}: ${r.message}` };
+    }
+    return { check: name, passed: true };
+  }
+  const v = c.path ? getPath(output, segments) : output;
   switch (c.type) {
     case "not_empty":
       return isEmpty(v) ? { check: name, passed: false, message: "value is empty" } : { check: name, passed: true };

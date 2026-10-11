@@ -110,11 +110,20 @@ export interface FetchResponse {
   errors: { url: string; error: string; status?: number }[];
 }
 
-export function fetchPages(params: FetchParams): Promise<FetchResponse> {
-  return call("fetch", `${FETCH_URL}/`, {
-    method: "POST",
-    body: JSON.stringify({ ...params, urls: params.urls.map(normalizeUrl) }),
-  });
+/** Fetch rejects more than this many URLs in one request (400 "expected array to have <=10 items"). */
+export const FETCH_MAX_URLS = 10;
+
+/** Fetches any number of URLs, split into requests of at most FETCH_MAX_URLS, with results in input order. */
+export async function fetchPages(params: FetchParams): Promise<FetchResponse> {
+  const urls = params.urls.map(normalizeUrl);
+  const batches: string[][] = [];
+  for (let i = 0; i < urls.length; i += FETCH_MAX_URLS) batches.push(urls.slice(i, i + FETCH_MAX_URLS));
+  const responses = await Promise.all(
+    batches.map((batch) =>
+      call<FetchResponse>("fetch", `${FETCH_URL}/`, { method: "POST", body: JSON.stringify({ ...params, urls: batch }) }),
+    ),
+  );
+  return { results: responses.flatMap((r) => r.results), errors: responses.flatMap((r) => r.errors) };
 }
 
 // ---------- Agent ----------
