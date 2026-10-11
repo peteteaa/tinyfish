@@ -1,17 +1,18 @@
-// In-process job registry. Long work (learning, runs) runs as a job in the server process; clients subscribe
-// to its events. Every event is buffered so late or reconnecting subscribers get the full history first.
-// Jobs are dropped from memory 30 minutes after they finish.
+// Job registry. Long work (learning, runs, repairs) runs as a job; clients subscribe to its events.
+// Events are kept in memory (fast path when the subscriber is on the same server) and also written to the store,
+// so on serverless hosts (Vercel) any instance can stream them. There, the route that starts a job keeps it running
+// with after(job.done). In-memory copies are dropped 30 minutes after the job finishes.
 
 import { compileDetailed } from "./compile.js";
 import { log } from "./env.js";
 import { runWorkflowDef } from "./executor.js";
 import { explore } from "./explore.js";
 import type { EditTurn } from "./edit.js";
-import { repairAndVerify } from "./repair.js";
-import type { RunRecord } from "./store/types.js";
-import type { Workflow } from "./schema.js";
 import { withNotices } from "./progress.js";
-import { newId } from "./store.js";
+import { repairAndVerify } from "./repair.js";
+import type { Workflow } from "./schema.js";
+import type { RunRecord } from "./store/types.js";
+import { jobStore, newId } from "./store.js";
 
 export type JobEvent = { kind: string; [key: string]: unknown };
 type Listener = (e: JobEvent) => void;
@@ -24,9 +25,12 @@ export interface Job {
   events: JobEvent[];
   listeners: Set<Listener>;
   finishedAt?: number;
+  /** Resolves when the job has finished and every event is stored. Pass to after() in route handlers. */
+  done: Promise<void>;
 }
 
 const EXPIRE_MS = 30 * 60_000;
+const TERMINAL = new Set(["done", "error"]);
 
 // Kept on globalThis so Next.js dev reloads don't orphan running jobs.
 const g = globalThis as typeof globalThis & { __wfmJobs?: Map<string, Job> };
@@ -37,14 +41,10 @@ function sweep() {
   for (const [id, job] of jobs) if (job.finishedAt && now - job.finishedAt > EXPIRE_MS) jobs.delete(id);
 }
 
+/** The in-memory job, if it runs (or recently ran) on this server instance. */
 export function getJob(id: string): Job | undefined {
   sweep();
   return jobs.get(id);
-}
-
-function emit(job: Job, event: JobEvent) {
-  job.events.push(event);
-  for (const l of job.listeners) l(event);
 }
 
 /** Replays buffered events, then streams new ones. Returns an unsubscribe function. */
@@ -54,14 +54,73 @@ export function subscribe(job: Job, listener: Listener): () => void {
   return () => job.listeners.delete(listener);
 }
 
-/** Runs `body` in the background as a job; a thrown error becomes an `error` event, success ends with `done`. */
+const POLL_MS = 1_000;
+
+/**
+ * Streams a job's events from the start: from memory when the job is on this instance, otherwise by polling the
+ * store. Resolves "not_found" if no such job exists, "finished" after its done/error event, "stopped" when `signal`
+ * aborts or `maxMs` passes (clients reconnect and get the history again).
+ */
+export async function followJob(
+  id: string,
+  listener: Listener,
+  opts: { signal?: AbortSignal; maxMs?: number } = {},
+): Promise<"not_found" | "finished" | "stopped"> {
+  const deadline = Date.now() + (opts.maxMs ?? Infinity);
+  const local = getJob(id);
+  if (local) {
+    return new Promise((resolve) => {
+      let unsubscribe = () => {};
+      const finish = (how: "finished" | "stopped") => {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(how);
+      };
+      const timer = setTimeout(() => finish("stopped"), Math.min(deadline - Date.now(), 2 ** 31 - 1));
+      opts.signal?.addEventListener("abort", () => finish("stopped"));
+      unsubscribe = subscribe(local, (e) => {
+        listener(e);
+        if (TERMINAL.has(e.kind)) queueMicrotask(() => finish("finished"));
+      });
+    });
+  }
+  const store = jobStore();
+  if (!(await store.getJobInfo(id))) return "not_found";
+  let after = 0;
+  while (!opts.signal?.aborted && Date.now() < deadline) {
+    for (const row of await store.jobEvents(id, after)) {
+      after = row.seq;
+      const e = row.event as JobEvent;
+      listener(e);
+      if (TERMINAL.has(e.kind)) return "finished";
+    }
+    await new Promise((r) => setTimeout(r, POLL_MS));
+  }
+  return "stopped";
+}
+
+/**
+ * Runs `body` in the background as a job; a thrown error becomes an `error` event, success ends with `done`.
+ * Store writes are chained so events land in order; a failed write is logged, not fatal to the job.
+ */
 export function startJob(type: Job["type"], body: (emit: (e: JobEvent) => void) => Promise<void>): Job {
   sweep();
-  const job: Job = { id: newId(), type, status: "running", created_at: new Date().toISOString(), events: [], listeners: new Set() };
+  const created_at = new Date().toISOString();
+  const job: Job = { id: newId(), type, status: "running", created_at, events: [], listeners: new Set(), done: Promise.resolve() };
   jobs.set(job.id, job);
-  const send = (e: JobEvent) => emit(job, e);
+  const store = jobStore();
+  let persisted: Promise<unknown> = store.createJob({ id: job.id, type, status: "running", created_at });
+  const persist = (write: () => Promise<unknown>) => {
+    persisted = persisted.then(write).catch((err) => log(`job ${job.id}: couldn't store an event: ${err instanceof Error ? err.message : err}`));
+  };
+  const send = (e: JobEvent) => {
+    job.events.push(e);
+    const seq = job.events.length;
+    persist(() => store.appendJobEvent(job.id, seq, e));
+    for (const l of job.listeners) l(e);
+  };
   // Waits inside Gemini/TinyFish calls (rate limits, model fallback) show up as "notice" events.
-  withNotices((message) => send({ kind: "notice", message }), () => body(send))
+  const work = withNotices((message) => send({ kind: "notice", message }), () => body(send))
     .then(() => {
       job.status = "done";
       send({ kind: "done" });
@@ -74,7 +133,9 @@ export function startJob(type: Job["type"], body: (emit: (e: JobEvent) => void) 
     })
     .finally(() => {
       job.finishedAt = Date.now();
+      persist(() => store.setJobStatus(job.id, job.status));
     });
+  job.done = work.then(() => persisted).then(() => undefined);
   return job;
 }
 

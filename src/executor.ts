@@ -216,7 +216,7 @@ export async function runStep(step: Step, ctx: TemplateContext): Promise<StepRec
 // ---------- workflow ----------
 
 export async function runWorkflow(name: string, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
-  const wf = getWorkflow(name, opts.version);
+  const wf = await getWorkflow(name, opts.version);
   if (!wf) throw new Error(`No workflow named "${name}"${opts.version ? ` v${opts.version}` : ""}`);
   return runWorkflowDef(wf, input, opts);
 }
@@ -224,7 +224,7 @@ export async function runWorkflow(name: string, input: Record<string, unknown>, 
 /** Runs a workflow definition directly (used by `learn --run` before/after saving). */
 export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
   const params = resolveParams(wf, input);
-  const prev = lastSuccessfulRun(wf.name);
+  const prev = await lastSuccessfulRun(wf.name);
   const ctx: TemplateContext = {
     params,
     steps: {},
@@ -277,6 +277,6 @@ export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown
 
   run.finished_at = new Date().toISOString();
   run.duration_ms = Date.now() - started;
-  if (wf.version) saveRun(run);
+  if (wf.version) await saveRun(run);
   return run;
 }

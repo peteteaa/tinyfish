@@ -91,8 +91,8 @@ server.registerTool(
     inputSchema: { workflow: z.record(z.string(), z.unknown()) },
   },
   ({ workflow }) =>
-    guarded(() => {
-      const saved = saveWorkflow(workflow, "cli");
+    guarded(async () => {
+      const saved = await saveWorkflow(workflow, "cli");
       return { saved: `${saved.name}@v${saved.version}` };
     }),
 );
@@ -104,7 +104,7 @@ server.registerTool(
     inputSchema: { name: z.string(), version: z.number().int().optional() },
   },
   ({ name, version }) =>
-    guarded(() => getWorkflow(name, version) ?? Promise.reject(new Error(`No workflow named "${name}"`))),
+    guarded(async () => (await getWorkflow(name, version)) ?? Promise.reject(new Error(`No workflow named "${name}"`))),
 );
 
 await server.connect(new StdioServerTransport());

@@ -5,11 +5,12 @@
 //   <data>/runs/<name>/<run_id>.json        run history
 //   <data>/traces/<trace_id>.json           exploration traces from `learn`
 //   <data>/deleted.json                     names deleted by the user, so seeding doesn't recreate them
+//   <data>/jobs/<job_id>.json               job info; events appended to <data>/jobs/<job_id>.events.jsonl
 
 import fs from "node:fs";
 import path from "node:path";
 import type { Workflow } from "../schema.js";
-import type { Backend, RunRecord, VersionInfo, VersionSource } from "./types.js";
+import type { Backend, JobInfo, JobEventRow, RunRecord, VersionInfo, VersionSource } from "./types.js";
 
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, "utf8")) as T;
@@ -25,6 +26,7 @@ export function filesBackend(dataDir: string): Backend {
   const RUNS = path.join(dataDir, "runs");
   const TRACES = path.join(dataDir, "traces");
   const DELETED = path.join(dataDir, "deleted.json");
+  const JOBS = path.join(dataDir, "jobs");
   const deletedNames = (): string[] => (fs.existsSync(DELETED) ? readJson<string[]>(DELETED) : []);
 
   const versionNumbers = (name: string): number[] => {
@@ -101,6 +103,29 @@ export function filesBackend(dataDir: string): Backend {
     getTrace(id) {
       const file = path.join(TRACES, `${id}.json`);
       return fs.existsSync(file) ? readJson(file) : undefined;
+    },
+    createJob: (job) => writeJson(path.join(JOBS, `${job.id}.json`), job),
+    setJobStatus(id, status) {
+      const file = path.join(JOBS, `${id}.json`);
+      if (fs.existsSync(file)) writeJson(file, { ...readJson<JobInfo>(file), status });
+    },
+    getJobInfo(id) {
+      const file = path.join(JOBS, `${id}.json`);
+      return fs.existsSync(file) ? readJson<JobInfo>(file) : undefined;
+    },
+    appendJobEvent(id, seq, event) {
+      fs.mkdirSync(JOBS, { recursive: true });
+      fs.appendFileSync(path.join(JOBS, `${id}.events.jsonl`), JSON.stringify({ seq, event }) + "\n");
+    },
+    jobEvents(id, afterSeq) {
+      const file = path.join(JOBS, `${id}.events.jsonl`);
+      if (!fs.existsSync(file)) return [];
+      return fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as JobEventRow)
+        .filter((r) => r.seq > afterSeq);
     },
   };
 }

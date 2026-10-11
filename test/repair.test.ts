@@ -15,7 +15,7 @@ const { MODEL } = await import("../src/llm.js");
 
 const noGemini = !process.env.GEMINI_API_KEY && "GEMINI_API_KEY not set";
 const noKeys = noGemini || (!process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set");
-const wf = getWorkflow("competitor_pricing")!;
+const wf = (await getWorkflow("competitor_pricing"))!;
 
 /** A competitor_pricing run where `pages` were fetched and the extract found `plans[i]` plans on page i. */
 function fakeRun(pages: { url: string; title: string; text: string }[], plans: number[]) {

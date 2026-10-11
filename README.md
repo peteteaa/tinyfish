@@ -49,6 +49,21 @@ agent step (directly or through another extract), so Gemini only structures or s
 Results go to stdout as JSON and progress goes to stderr, so `npm run -s run-wf -- ... > out.json` works.
 Exit code is 1 when a run errors or a check fails.
 
+## Deploy to Vercel
+
+The Vercel project builds `web/` (Root Directory `web`, source files outside it included) and installs from the repo
+root (`web/vercel.json`), so `src/` and its dependencies ship with the app.
+
+- **Storage:** with `DATABASE_URL` (or `POSTGRES_URL`) set, the store uses Postgres (`src/store/postgres.ts`, Neon
+  serverless driver); tables are created on first use. Without it: SQLite in `data/` as before. `STORAGE=` overrides.
+- **Jobs:** learn, run and repair routes keep the job running after the response with `after(job.done)`
+  (`maxDuration` 300s). Every job event is also written to the store, so `/api/jobs/:id/events` streams it from any
+  instance (memory when the job runs on that instance, otherwise by polling the store).
+- **Env vars:** `TINYFISH_API_KEY`, `GEMINI_API_KEY`, and `DATABASE_URL` (added by the Neon Marketplace integration).
+
+    vercel integration add neon --plan free_v3 -m region=iad1   # once; accept the terms in the browser
+    vercel deploy                                               # preview; add --prod for production
+
 ## Use from Claude Desktop / Cursor (MCP)
 
     {

@@ -319,6 +319,6 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
 
   trace.final_text = finalText;
   trace.finished_at = new Date().toISOString();
-  saveTrace(trace.id, trace);
+  await saveTrace(trace.id, trace);
   return trace;
 }

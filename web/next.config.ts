@@ -13,6 +13,8 @@ process.env.WM_ROOT = repoRoot;
 const nextConfig: NextConfig = {
   env: { WM_ROOT: repoRoot },
   outputFileTracingRoot: repoRoot,
+  // Core code reads seeds/ at runtime (seeding the store, the compiler's example workflow); ship it with every function.
+  outputFileTracingIncludes: { "/**": ["../seeds/**/*"] },
   turbopack: { root: repoRoot },
   // Turbopack has no extensionAlias, so ".js" specifiers in src/ do not resolve to .ts there.
   // The web scripts therefore run webpack (`next dev --webpack`, `next build --webpack`).

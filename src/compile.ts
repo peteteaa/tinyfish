@@ -100,7 +100,7 @@ export async function compileDetailed(
     );
   }
   const example = fs.readFileSync(path.join(SEEDS_DIR, "competitor_pricing.json"), "utf8");
-  const existing = listWorkflows().map((w) => w.name);
+  const existing = (await listWorkflows()).map((w) => w.name);
   const prompt = [
     `<goal>\n${trace.goal}\n</goal>`,
     `<trace>\n${JSON.stringify(summarize(trace.calls.map((c, index) => ({ index, ...c }))), null, 2)}\n</trace>`,
@@ -162,7 +162,7 @@ export async function learn(goal: string, opts: { name?: string } = {}) {
   log("Exploring...");
   const trace = await explore(goal);
   log(`Explored with ${trace.calls.length} tool calls (trace ${trace.id}). Compiling...`);
-  const workflow = saveWorkflow(await compile(trace, opts), "learned");
+  const workflow = await saveWorkflow(await compile(trace, opts), "learned");
   log(`Saved ${workflow.name} v${workflow.version}.`);
   return { trace, workflow };
 }
