@@ -52,7 +52,7 @@ export default function LearnPage({ params }: { params: Promise<{ jobId: string 
         </div>
       )}
 
-      <section aria-labelledby="calls">
+      <section className="panel" aria-labelledby="calls">
         <h2 id="calls">TinyFish calls</h2>
         <TraceList rows={s.rows} active={working} />
       </section>

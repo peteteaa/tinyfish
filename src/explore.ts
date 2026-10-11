@@ -47,6 +47,9 @@ parameterized workflow, so solve the task the way you'd want it repeated:
 - Prefer the cheapest tool that works: tinyfish_search (find URLs) and tinyfish_fetch (read pages) are fast and free;
   tinyfish_agent drives a real browser and is slow and costs credits. Use the agent only when a page needs
   interaction (clicking, forms, logins, infinite scroll) or fetch returned nothing useful.
+- Each fetch result has a "title" field as well as "text". A page's main heading is often only in "title", so read
+  both before deciding fetch didn't work. Never re-fetch the same page with tinyfish_agent just to read text that
+  fetch already returned.
 - Be direct. Don't make exploratory calls you won't need; every call you make may be replayed on every rerun.
 - When you have the answer, call submit_answer exactly once with the structured result, then stop.`;
 
@@ -112,7 +115,8 @@ export async function explore(goal: string, opts: ExploreOptions = {}): Promise<
     tool({
       name: "tinyfish_fetch",
       description:
-        "Fetch one or more URLs and return clean page text (markdown by default). Free and fast. " +
+        "Fetch one or more URLs and return clean page text (markdown by default) plus each page's title " +
+        "(often the main heading, which may be missing from the text). Free and fast. " +
         "Does not run interactions; for pages that need clicks or forms use tinyfish_agent.",
       schema: z.object({
         urls: z.array(z.string()).min(1).max(10),

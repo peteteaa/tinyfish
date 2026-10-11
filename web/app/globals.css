@@ -130,3 +130,104 @@ pre code { background: none; padding: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- shared ---------- */
+a { color: var(--signal); }
+.mono { font-family: var(--font-mono), ui-monospace, monospace; }
+.plain { list-style: none; margin: 0; padding: 0; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.error-text { color: var(--fail); margin: 8px 0; }
+.error-text ul { margin: 4px 0 0; padding-left: 20px; }
+.field-label { display: block; font-weight: 600; font-size: var(--text-sm); margin-bottom: 6px; }
+.text-input, .composer textarea {
+  width: 100%; font: inherit; color: var(--ink); background: var(--paper);
+  border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px;
+}
+.text-input { font-family: var(--font-mono), ui-monospace, monospace; font-size: var(--text-sm); }
+.text-input:focus, .composer textarea:focus { border-color: var(--signal); outline: none; }
+.text-input:focus-visible, .composer textarea:focus-visible { outline: 2px solid var(--signal); outline-offset: 1px; }
+pre.json { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }
+details > summary { cursor: pointer; }
+details > summary:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 4px; }
+section.panel > h2, .panel > h2 { margin-bottom: 12px; }
+.link-button {
+  background: none; border: 0; padding: 4px 0; min-height: 0; font-weight: 400;
+  color: var(--signal); text-align: left; text-decoration: underline; text-underline-offset: 3px;
+}
+.link-button:hover { border: 0; color: var(--ink); }
+
+/* Status: color only for status, always paired with a word. */
+.status { font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+.status-ok { color: var(--pass); }
+.status-failed { color: var(--fail); }
+.status-running { color: var(--running); }
+
+/* ---------- composer ---------- */
+.composer textarea { min-height: 128px; resize: vertical; font-size: var(--text-md); line-height: 1.5; display: block; }
+.composer-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.examples { margin-top: 20px; }
+.examples p { margin-bottom: 4px; }
+.examples li + li { margin-top: 2px; }
+
+/* ---------- TinyFish call list ---------- */
+.trace-list { list-style: none; margin: 0; padding: 0; }
+.trace-row { border-top: 1px solid var(--border); }
+.trace-row:first-child { border-top: 0; }
+.trace-row summary {
+  display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
+  padding: 10px 0; list-style: none;
+}
+.trace-row summary::-webkit-details-marker { display: none; }
+.trace-tool strong { font-weight: 600; }
+.trace-input { font-size: var(--text-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-detail { padding: 0 0 12px; }
+.trace-detail p { margin: 8px 0 0; }
+@media (max-width: 560px) {
+  .trace-row summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .trace-input { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* ---------- exploration -> workflow (the signature view) ---------- */
+.trace-workflow { margin-top: 32px; }
+.tw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.tw-grid > .panel { margin-top: 0; min-width: 0; }
+@media (max-width: 720px) { .tw-grid { grid-template-columns: 1fr; } }
+.tw-trace li, .tw-steps li { border-left: 3px solid transparent; transition: background-color 120ms, border-color 120ms, color 120ms; }
+.tw-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
+  padding: 8px 10px; border-radius: 0 4px 4px 0;
+}
+.tw-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tw-row.dead, .tw-row.dead .status { color: var(--muted); }
+.tw-row.dead strong { font-weight: 400; }
+.tw-row.lit {
+  border-left-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 10%, transparent);
+}
+.tw-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.tw-step { counter-increment: step; padding: 8px 10px 8px 40px; position: relative; border-radius: 0 4px 4px 0; cursor: default; }
+.tw-step::before {
+  content: counter(step); position: absolute; left: 12px; top: 8px;
+  font-weight: 600; font-size: var(--text-sm); color: var(--muted);
+}
+.tw-step:hover, .tw-step:focus-visible {
+  border-left-color: var(--signal); background: color-mix(in srgb, var(--signal) 10%, transparent); outline: none;
+}
+.tw-step:hover::before, .tw-step:focus-visible::before { color: var(--signal); }
+.tw-key { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.column-inner { max-width: 880px; }
+
+/* ---------- workflow page ---------- */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-top: 1px solid var(--border); vertical-align: top; }
+thead th { border-top: 0; font-weight: 600; color: var(--muted); }
+.wf-steps { margin: 0; padding-left: 24px; }
+.wf-steps > li { padding: 10px 0; border-top: 1px solid var(--border); }
+.wf-steps > li:first-child { border-top: 0; padding-top: 0; }
+.wf-steps > li::marker { font-weight: 600; color: var(--muted); }
+.checks { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+p.status { margin-bottom: 12px; }

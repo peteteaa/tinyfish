@@ -28,8 +28,12 @@ There is no mock mode: every run calls the real TinyFish and Gemini APIs.
     npm test          # unit tests plus live TinyFish/Gemini tests (each skipped when its key is missing)
     npm run typecheck
 
-    npm run web:build && PORT=3000 npm run web:start   # web app (M0: library page + /api/health)
-    PORT=3000 npm run web:dev
+    PORT=3000 npm run web:dev                          # web app at http://localhost:3000
+    npm run web:build && PORT=3000 npm run web:start   # production build
+
+In the web app, describe a task on the home page and choose **Learn a workflow**. The learn page streams each
+TinyFish call live, shows the answer, then the drafted workflow next to the calls it came from (hover a saved step
+to highlight its calls; dimmed calls were dead ends). Review the name and choose **Save workflow**.
 
 TinyFish is the only web layer: `src/tinyfish.ts` is the only module that calls out to the web, and Gemini never
 gets its built-in web tools. `test/web-boundary.test.ts` fails the build if anything else reaches the web or
