@@ -22,6 +22,7 @@ const def = () => (defaultStore ??= createStore(STORAGE, DATA_DIR));
 export const listWorkflows = () => def().listWorkflows();
 export const getWorkflow = (name: string, version?: number) => def().getWorkflow(name, version);
 export const saveWorkflow = (input: unknown, source: VersionSource = "cli"): Workflow => def().saveWorkflow(input, source);
+export const deleteWorkflow = (name: string) => def().deleteWorkflow(name);
 export const listVersions = (name: string) => def().listVersions(name);
 export const diff = (name: string, from: number, to: number) => def().diff(name, from, to);
 export const saveRun = (run: RunRecord) => def().saveRun(run);

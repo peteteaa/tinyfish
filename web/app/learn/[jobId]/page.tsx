@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
+import type { Workflow } from "@core/schema.js";
 import { SaveForm } from "@/components/SaveForm";
 import { TraceList } from "@/components/TraceList";
 import { TraceWorkflowView } from "@/components/TraceWorkflowView";
+import { WorkflowChat } from "@/components/WorkflowChat";
 import { reduceLearnEvents } from "@/lib/learnEvents";
 import { useJobEvents } from "@/lib/useJobEvents";
 
@@ -12,6 +14,9 @@ export default function LearnPage({ params }: { params: Promise<{ jobId: string 
   const { jobId } = use(params);
   const { events, status } = useJobEvents(jobId);
   const s = useMemo(() => reduceLearnEvents(events), [events]);
+  // Chat edits to the draft before it's saved; null until the first edit.
+  const [edited, setEdited] = useState<Workflow | null>(null);
+  const draft = s.draft ? (edited ?? s.draft.workflow) : null;
 
   if (status === "not_found") {
     return (
@@ -65,11 +70,17 @@ export default function LearnPage({ params }: { params: Promise<{ jobId: string 
         </section>
       )}
 
-      {s.draft && (
+      {s.draft && draft && (
         <>
-          <TraceWorkflowView rows={s.rows} workflow={s.draft.workflow} derivedFrom={s.draft.derived_from} />
+          <TraceWorkflowView rows={s.rows} workflow={draft} derivedFrom={s.draft.derived_from} />
           <div className="column-inner">
-            <SaveForm workflow={s.draft.workflow} elapsedMs={s.draft.elapsed_ms} />
+            <WorkflowChat
+              workflow={draft}
+              onChange={setEdited}
+              heading="Refine the draft"
+              intro="Describe a change in plain English and Gemini edits the draft above. Save when it looks right."
+            />
+            <SaveForm workflow={draft} elapsedMs={s.draft.elapsed_ms} />
           </div>
         </>
       )}

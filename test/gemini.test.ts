@@ -10,8 +10,9 @@ process.env.WM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "wm-gemini-test-
 const { extract, MODEL, FAST_MODEL } = await import("../src/llm.js");
 const { runWorkflow } = await import("../src/executor.js");
 const { learn } = await import("../src/compile.js");
+const { editWorkflow } = await import("../src/edit.js");
 const { getWorkflow } = await import("../src/store.js");
-const { startLearnJob, subscribe } = await import("../src/jobs.js");
+const { startLearnJob, startRunJob, subscribe } = await import("../src/jobs.js");
 
 const noGemini = !process.env.GEMINI_API_KEY && "GEMINI_API_KEY not set";
 const noKeys = noGemini || (!process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set");
@@ -99,4 +100,40 @@ test("learn job (live): streams trace rows, answer and a draft with provenance, 
     for (const i of draft.derived_from[step.id]) assert.ok(i >= 0 && i < traces.length);
   }
   assert.equal(getWorkflow("example_heading_job"), undefined, "a draft must not be saved until the user saves it");
+});
+
+test("run job (live): streams every step and finishes with a saved run", { skip: noKeys, timeout: 180_000 }, async () => {
+  const wf = getWorkflow("competitor_pricing")!;
+  const job = startRunJob(wf, { competitors: ["firecrawl.dev/pricing"] });
+  const events = await new Promise<{ kind: string; [k: string]: any }[]>((resolve) => {
+    const seen: any[] = [];
+    subscribe(job, (e) => {
+      seen.push(e);
+      if (e.kind === "done" || e.kind === "error") resolve(seen);
+    });
+  });
+  assert.equal(events.at(-1)!.kind, "done", JSON.stringify(events.find((e) => e.kind === "error")));
+  assert.deepEqual(events[0].steps.map((s: any) => s.id), wf.steps.map((s) => s.id));
+  const ends = events.filter((e) => e.kind === "step_end");
+  assert.deepEqual(ends.map((e) => e.step), wf.steps.map((s) => s.id));
+  const done = events.find((e) => e.kind === "run_done")!;
+  assert.equal(done.run.status, "ok");
+  const { getRun } = await import("../src/store.js");
+  assert.ok(getRun(done.run.run_id), "run record was not saved");
+});
+
+test(`edit (live Gemini, ${MODEL}): applies a plain-English change and keeps the name`, { skip: noGemini, timeout: 120_000 }, async () => {
+  const wf = getWorkflow("competitor_pricing");
+  assert.ok(wf, "seed workflow missing");
+  const result = await editWorkflow(wf, "Add an optional string param named currency, default \"USD\", and mention it in the extract instruction.");
+  assert.equal(result.changed, true, result.reply);
+  assert.equal(result.workflow.name, "competitor_pricing");
+  assert.equal(result.workflow.version, wf.version);
+  assert.ok(result.workflow.params.currency, `params: ${Object.keys(result.workflow.params)}`);
+  assert.deepEqual(result.diff.params.added, ["currency"]);
+  assert.deepEqual(result.diff.steps.removed, []);
+
+  const question = await editWorkflow(result.workflow, "What does this workflow do? Don't change anything.");
+  assert.equal(question.changed, false, JSON.stringify(question.diff));
+  assert.ok(question.reply.length > 0);
 });

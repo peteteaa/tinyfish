@@ -176,6 +176,28 @@ for (const kind of ["sqlite", "files"] as const) {
       assert.throws(() => s.diff("demo", 1, 7), /Workflow "demo" has no version 7/);
       assert.throws(() => s.diff("ghost", 1, 2), /Workflow "ghost" has no version 1/);
     });
+
+    test("deleteWorkflow removes versions and runs; seeds stay deleted", () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), `wm-store-${kind}-del-`));
+      const s = createStore(kind, dir);
+      s.saveWorkflow(wfInput());
+      s.saveWorkflow(wfInput());
+      s.saveRun(run("demo", "r1", "2026-01-01T00:00:00Z", "ok"));
+      assert.equal(s.deleteWorkflow("demo"), true);
+      assert.equal(s.getWorkflow("demo"), undefined);
+      assert.deepEqual(s.listVersions("demo"), []);
+      assert.deepEqual(s.listRuns("demo"), []);
+      assert.ok(!s.listWorkflows().some((w) => w.name === "demo"));
+      assert.equal(s.deleteWorkflow("demo"), false);
+      assert.equal(s.deleteWorkflow("ghost"), false);
+
+      // re-saving the name starts over at v1
+      assert.equal(s.saveWorkflow(wfInput()).version, 1);
+
+      // a deleted seed isn't re-seeded by a fresh store on the same data dir
+      assert.equal(s.deleteWorkflow("competitor_pricing"), true);
+      assert.ok(!createStore(kind, dir).listWorkflows().some((w) => w.name === "competitor_pricing"));
+    });
   });
 }
 
@@ -194,7 +216,7 @@ test("sqlite backend: db file, WAL and user_version", async () => {
   createStore("sqlite", dir).saveWorkflow(wfInput());
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(path.join(dir, "workflow-memory.db"));
-  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 1);
+  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 2);
   assert.equal((db.prepare("PRAGMA journal_mode").get() as any).journal_mode, "wal");
   db.close();
 });

@@ -64,6 +64,8 @@ export interface Store {
   listWorkflows(): WorkflowSummary[];
   getWorkflow(name: string, version?: number): Workflow | undefined;
   saveWorkflow(input: unknown, source?: VersionSource): Workflow;
+  /** Removes every version and the run history. Returns false if there was no such workflow. */
+  deleteWorkflow(name: string): boolean;
   listVersions(name: string): VersionInfo[];
   diff(name: string, from: number, to: number): WorkflowDiff;
   saveRun(run: RunRecord): void;
@@ -83,6 +85,10 @@ export interface Backend {
   write(wf: Workflow, source: VersionSource): void;
   /** Allocates the next version number and writes atomically where the backend supports it. */
   writeNext(wf: Workflow, source: VersionSource): Workflow;
+  /** Deletes all versions and runs of `name` and remembers it so seeding doesn't bring it back. */
+  remove(name: string): void;
+  /** True if `name` was removed (seeding skips it). */
+  removed(name: string): boolean;
   saveRun(run: RunRecord): void;
   getRun(runId: string): RunRecord | undefined;
   listRuns(name: string, limit: number): RunRecord[];

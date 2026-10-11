@@ -1,8 +1,9 @@
 import "./env.js";
 import { learn } from "./compile.js";
+import { editWorkflow } from "./edit.js";
 import { log } from "./env.js";
 import { runWorkflow } from "./executor.js";
-import { getTrace, getWorkflow, listRuns, listWorkflows, saveWorkflow } from "./store.js";
+import { deleteWorkflow, getTrace, getWorkflow, listRuns, listWorkflows, saveWorkflow } from "./store.js";
 
 const USAGE = `workflow-memory
 
@@ -11,7 +12,9 @@ const USAGE = `workflow-memory
   list                                           list saved workflows
   show <name> [--version=N] [--trace]            print a workflow (and the trace it was learned from)
   runs <name> [--limit=N]                        recent run history
-  save <file.json>                               save a hand-written workflow as the next version`;
+  save <file.json>                               save a hand-written workflow as the next version
+  edit <name> "<change>" [--dry-run]             have Gemini apply a plain-English change, save as the next version
+  delete <name>                                  delete a workflow, all its versions and its run history`;
 
 function parse(argv: string[]) {
   const positional: string[] = [];
@@ -102,6 +105,28 @@ async function main() {
       const fs = await import("node:fs");
       const wf = saveWorkflow(JSON.parse(fs.readFileSync(positional[0], "utf8")), "cli");
       out(`Saved ${wf.name} v${wf.version}`);
+      return;
+    }
+    case "edit": {
+      const [name, ...words] = positional;
+      const instruction = words.join(" ");
+      if (!name || !instruction) throw new Error('usage: edit <name> "<change>" [--dry-run]');
+      const wf = getWorkflow(name, version);
+      if (!wf) throw new Error(`No workflow named "${name}"`);
+      const result = await editWorkflow(wf, instruction);
+      log(result.reply);
+      if (!result.changed) return;
+      if (flags["dry-run"]) return out(result.workflow);
+      const { version: _v, ...draft } = result.workflow;
+      const saved = saveWorkflow(draft, "cli");
+      out(`Saved ${saved.name} v${saved.version}`);
+      return;
+    }
+    case "delete": {
+      const name = positional[0];
+      if (!name) throw new Error("usage: delete <name>");
+      if (!deleteWorkflow(name)) throw new Error(`No workflow named "${name}"`);
+      out(`Deleted ${name}`);
       return;
     }
     default:

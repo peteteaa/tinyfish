@@ -4,7 +4,9 @@
 
 import { compileDetailed } from "./compile.js";
 import { log } from "./env.js";
+import { runWorkflowDef } from "./executor.js";
 import { explore } from "./explore.js";
+import type { Workflow } from "./schema.js";
 import { newId } from "./store.js";
 
 export type JobEvent = { kind: string; [key: string]: unknown };
@@ -89,5 +91,34 @@ export function startLearnJob(goal: string, opts: { name?: string } = {}): Job {
     send({ kind: "compiling" });
     const { workflow, derivedFrom } = await compileDetailed(trace, opts);
     send({ kind: "draft", workflow, derived_from: derivedFrom, trace_id: trace.id, elapsed_ms: Date.now() - startedAt });
+  });
+}
+
+/**
+ * Run job: executes a saved workflow (already resolved and param-checked by the caller) and streams progress.
+ *
+ * Events: run_started, step_start, step_end, repair_available (a step's checks failed), run_done, error, done.
+ */
+export function startRunJob(workflow: Workflow, params: Record<string, unknown>): Job {
+  return startJob("run", async (send) => {
+    send({
+      kind: "run_started",
+      workflow: workflow.name,
+      version: workflow.version ?? null,
+      params,
+      steps: workflow.steps.map((s) => ({ id: s.id, type: s.type, description: s.description ?? null })),
+    });
+    const run = await runWorkflowDef(workflow, params, {
+      onEvent: (e) => {
+        if (e.type === "step_start") send({ kind: "step_start", step: e.step });
+        else if (e.record) {
+          send({ kind: "step_end", step: e.step, record: e.record });
+          // Repair hook (design doc 11.4): the UI offers "Repair this step" once self-repair exists.
+          const failures = e.record.checks.filter((c) => !c.passed);
+          if (failures.length) send({ kind: "repair_available", step: e.step, failures });
+        }
+      },
+    });
+    send({ kind: "run_done", run });
   });
 }

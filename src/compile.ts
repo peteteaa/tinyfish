@@ -19,10 +19,8 @@ function summarize(value: unknown, n = SUMMARY_TEXT): unknown {
   return value;
 }
 
-const SYSTEM = `You compile a recorded web-task trace into a reusable workflow: a JSON definition that a deterministic
-runner executes without an LLM in the loop (except inside "extract" steps). Reruns must be fast and cheap.
-
-Step types:
+/** The workflow format, shared by the compiler and the editor (src/edit.ts). */
+export const WORKFLOW_FORMAT = `Step types:
 - search  {query, purpose?, include_domains?, domain_type?} -> {query, results: [{title, url, snippet, ...}]}
 - fetch   {urls (template or list), purpose?, format?, links?} -> {results: [{url, final_url, title, text, links?}], errors: [...]}
           The page's title/main heading is often only in "title", not in "text", so extract inputs built from fetch
@@ -39,7 +37,12 @@ A string that is exactly one {{...}} keeps the raw value (arrays/objects); other
 
 Checks (run on each step output, or each item's output under forEach): not_empty, min_items {value}, required_keys {keys},
 regex {pattern}; each takes an optional dotted path. A failed check flags the run for repair, so write checks that catch
-real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.
+real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.`;
+
+const SYSTEM = `You compile a recorded web-task trace into a reusable workflow: a JSON definition that a deterministic
+runner executes without an LLM in the loop (except inside "extract" steps). Reruns must be fast and cheap.
+
+${WORKFLOW_FORMAT}
 
 Compile guidelines:
 1. Parameterize. Lift the concrete things the user named (companies, URLs, queries, dates, counts) into params,

@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkflow, listVersions } from "@core/store.js";
-import { SOURCE_LABEL, stepKeyField } from "@/lib/learnEvents";
+import { getWorkflow, listVersions, listRuns } from "@core/store.js";
+import { ROOT } from "@core/env.js";
+import { RunPanel } from "@/components/RunPanel";
+import { RunHistory } from "@/components/RunHistory";
+import { ExportPanel } from "@/components/ExportPanel";
+import { DeleteWorkflowButton } from "@/components/DeleteWorkflowButton";
+import { WorkflowEditor } from "@/components/WorkflowEditor";
+import { SOURCE_LABEL } from "@/lib/learnEvents";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +23,8 @@ export default async function WorkflowPage({
   const wf = await getWorkflow(name);
   if (!wf) notFound();
   const versions = await listVersions(name);
+  const runs = await listRuns(name, 20);
   const learned = Number(Array.isArray(learnedRaw) ? learnedRaw[0] : learnedRaw);
-  const params_ = Object.entries(wf.params);
 
   return (
     <main className="column">
@@ -27,56 +33,16 @@ export default async function WorkflowPage({
       <h1>{wf.name}</h1>
       <p>{wf.description}</p>
 
-      <section className="panel" aria-labelledby="params">
-        <h2 id="params">Parameters</h2>
-        {params_.length === 0 ? (
-          <p className="muted">This workflow takes no parameters.</p>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
-              <tbody>
-                {params_.map(([k, p]) => {
-                  const rec = p as unknown as Record<string, unknown>;
-                  const hasDefault = rec.default !== undefined;
-                  return (
-                    <tr key={k}>
-                      <td><code>{k}</code></td>
-                      <td>{String(rec.type ?? "")}</td>
-                      <td>{hasDefault ? <>default <code>{JSON.stringify(rec.default)}</code></> : rec.required === false ? "optional" : "required"}</td>
-                      <td>{String(rec.description ?? "")}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <RunPanel name={wf.name} params={wf.params} forEachIds={wf.steps.filter((s) => s.forEach !== undefined).map((s) => s.id)} />
+
+      <section className="panel" aria-labelledby="history">
+        <h2 id="history">Run history</h2>
+        <RunHistory runs={runs} />
       </section>
 
-      <section className="panel" aria-labelledby="steps">
-        <h2 id="steps">Steps</h2>
-        <ol className="wf-steps">
-          {wf.steps.map((s) => {
-            const key = stepKeyField(s as unknown as Record<string, unknown>);
-            return (
-              <li key={s.id}>
-                <div><strong>{s.id}</strong> <span className="muted small">{s.type}</span></div>
-                {s.description && <div>{s.description}</div>}
-                {key && <div className="mono small">{key}</div>}
-                {s.forEach && <div className="small muted">For each: <code>{s.forEach}</code></div>}
-                {s.checks && s.checks.length > 0 && (
-                  <ul className="small checks">
-                    {s.checks.map((c, i) => (
-                      <li key={i}><code>{c.type}</code>{"path" in c && c.path ? <> at <code>{c.path}</code></> : null}</li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+      <WorkflowEditor workflow={wf} />
+
+      <ExportPanel name={wf.name} root={ROOT} params={wf.params} />
 
       <section className="panel" aria-labelledby="versions">
         <h2 id="versions">Versions</h2>
@@ -95,6 +61,12 @@ export default async function WorkflowPage({
           <summary>Workflow JSON</summary>
           <pre className="json">{JSON.stringify(wf, null, 2)}</pre>
         </details>
+      </section>
+
+      <section className="panel" aria-labelledby="delete">
+        <h2 id="delete">Delete workflow</h2>
+        <p className="muted">Removes every version of {wf.name} and its run history. This can&apos;t be undone.</p>
+        <DeleteWorkflowButton name={wf.name} redirectTo="/" />
       </section>
     </main>
   );

@@ -20,6 +20,8 @@ const MIGRATIONS: string[] = [
    CREATE TABLE learn_sessions (
      id TEXT PRIMARY KEY, goal TEXT, trace_json TEXT NOT NULL, created_at TEXT NOT NULL
    );`,
+  // 2: names deleted by the user, so seeding doesn't recreate them
+  `CREATE TABLE deleted_workflows (name TEXT PRIMARY KEY, deleted_at TEXT NOT NULL);`,
 ];
 
 function migrate(db: DatabaseSync) {
@@ -76,6 +78,19 @@ export function sqliteBackend(dataDir: string): Backend {
         throw e;
       }
     },
+    remove(name) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        db.prepare("DELETE FROM workflows WHERE name = ?").run(name);
+        db.prepare("DELETE FROM runs WHERE workflow = ?").run(name);
+        db.prepare("INSERT OR REPLACE INTO deleted_workflows (name, deleted_at) VALUES (?, ?)").run(name, new Date().toISOString());
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+    },
+    removed: (name) => !!db.prepare("SELECT 1 FROM deleted_workflows WHERE name = ?").get(name),
     saveRun(run) {
       db.prepare(
         "INSERT OR REPLACE INTO runs (run_id, workflow, version, status, started_at, finished_at, json) VALUES (?, ?, ?, ?, ?, ?, ?)",

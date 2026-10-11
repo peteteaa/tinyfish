@@ -4,6 +4,7 @@
 //   <data>/workflows/<name>/v<N>.meta.json  { source, created_at }; absent => "import" + file mtime
 //   <data>/runs/<name>/<run_id>.json        run history
 //   <data>/traces/<trace_id>.json           exploration traces from `learn`
+//   <data>/deleted.json                     names deleted by the user, so seeding doesn't recreate them
 
 import fs from "node:fs";
 import path from "node:path";
@@ -23,6 +24,8 @@ export function filesBackend(dataDir: string): Backend {
   const WF = path.join(dataDir, "workflows");
   const RUNS = path.join(dataDir, "runs");
   const TRACES = path.join(dataDir, "traces");
+  const DELETED = path.join(dataDir, "deleted.json");
+  const deletedNames = (): string[] => (fs.existsSync(DELETED) ? readJson<string[]>(DELETED) : []);
 
   const versionNumbers = (name: string): number[] => {
     const dir = path.join(WF, name);
@@ -68,6 +71,12 @@ export function filesBackend(dataDir: string): Backend {
       put(saved, source);
       return saved;
     },
+    remove(name) {
+      fs.rmSync(path.join(WF, name), { recursive: true, force: true });
+      fs.rmSync(path.join(RUNS, name), { recursive: true, force: true });
+      writeJson(DELETED, [...new Set([...deletedNames(), name])]);
+    },
+    removed: (name) => deletedNames().includes(name),
     saveRun: (run) => writeJson(path.join(RUNS, run.workflow, `${run.run_id}.json`), run),
     getRun(runId) {
       if (!fs.existsSync(RUNS)) return undefined;

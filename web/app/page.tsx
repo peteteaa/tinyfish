@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listWorkflows } from "@core/store.js";
 import { Composer } from "@/components/Composer";
+import { DeleteWorkflowButton } from "@/components/DeleteWorkflowButton";
 import { SOURCE_LABEL } from "@/lib/learnEvents";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -29,6 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
                 <Link href={`/workflows/${w.name}`}><strong>{w.name}</strong></Link>
                 <span className="muted">{w.description}</span>
                 <span className="muted small">v{w.latest} · {SOURCE_LABEL[w.latest_source] ?? w.latest_source}</span>
+                <DeleteWorkflowButton name={w.name} compact />
               </li>
             ))}
           </ul>
