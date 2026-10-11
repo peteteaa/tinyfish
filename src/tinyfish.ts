@@ -142,6 +142,22 @@ export interface AgentRun {
 const TERMINAL: RunStatus[] = ["COMPLETED", "FAILED", "CANCELLED"];
 
 /**
+ * TinyFish requires standard JSON Schema ("object", "string", ...). LLMs sometimes write Google/OpenAPI-style
+ * uppercase types ("OBJECT", "STRING"), which TinyFish rejects with a 400, so lowercase every `type`.
+ */
+export function normalizeSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(normalizeSchema);
+  if (!schema || typeof schema !== "object") return schema;
+  return Object.fromEntries(
+    Object.entries(schema).map(([k, v]) => {
+      if (k === "type") return [k, Array.isArray(v) ? v.map((t) => (typeof t === "string" ? t.toLowerCase() : t)) : typeof v === "string" ? v.toLowerCase() : v];
+      // Property names under "properties" are user data, not schema keywords, but their values are schemas.
+      return [k, normalizeSchema(v)];
+    }),
+  );
+}
+
+/**
  * Runs a browser agent. Uses /run-async + polling /v1/runs/{id} rather than the synchronous /run,
  * so long runs don't hit HTTP timeouts and callers can observe progress.
  */
@@ -153,7 +169,7 @@ export async function runAgent(
   const body = {
     url: normalizeUrl(params.url),
     goal: params.goal,
-    output_schema: params.output_schema,
+    output_schema: params.output_schema && normalizeSchema(params.output_schema),
     browser_profile: params.browser_profile,
     agent_config: params.max_steps ? { max_steps: params.max_steps } : undefined,
     api_integration: "workflow-memory",

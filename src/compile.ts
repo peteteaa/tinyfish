@@ -49,17 +49,40 @@ Compile guidelines:
    where the trace showed fetch couldn't get the data. If search was used only to discover a stable URL, fetch that URL
    directly (as a param default) instead of searching on every run.
 4. Shape the output with the top-level "output" template so it matches the answer the trace submitted.
-5. Reply with only the workflow JSON object, matching <workflow_schema>. If it fails validation you'll get the
-   errors back; reply with the corrected complete workflow.`;
+5. Reply with only the workflow JSON object, matching <workflow_schema>, plus one extra top-level key
+   "derived_from": an object mapping each step id to the trace call indices it was based on (e.g.
+   {"fetch_pages": [1, 3], "extract_plans": [3]}). Steps that don't come from a specific call (extract, llm) map to the
+   calls whose output they read. If it fails validation you'll get the errors back; reply with the corrected
+   complete workflow.`;
 
 const MAX_ATTEMPTS = 3;
 
+/** Step id -> indices into trace.calls that the step was derived from. Kept with the learn session, not the workflow. */
+export type DerivedFrom = Record<string, number[]>;
+
 export async function compile(trace: Trace, opts: { name?: string } = {}): Promise<Workflow> {
+  return (await compileDetailed(trace, opts)).workflow;
+}
+
+function parseDerivedFrom(raw: unknown, workflow: Workflow, callCount: number): DerivedFrom {
+  const out: DerivedFrom = {};
+  const map = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  for (const step of workflow.steps) {
+    const v = map[step.id];
+    out[step.id] = Array.isArray(v) ? v.filter((i): i is number => Number.isInteger(i) && i >= 0 && i < callCount) : [];
+  }
+  return out;
+}
+
+export async function compileDetailed(
+  trace: Trace,
+  opts: { name?: string } = {},
+): Promise<{ workflow: Workflow; derivedFrom: DerivedFrom }> {
   const example = fs.readFileSync(path.join(SEEDS_DIR, "competitor_pricing.json"), "utf8");
   const existing = listWorkflows().map((w) => w.name);
   const prompt = [
     `<goal>\n${trace.goal}\n</goal>`,
-    `<trace>\n${JSON.stringify(summarize(trace.calls), null, 2)}\n</trace>`,
+    `<trace>\n${JSON.stringify(summarize(trace.calls.map((c, index) => ({ index, ...c }))), null, 2)}\n</trace>`,
     `<submitted_answer>\n${JSON.stringify(summarize(trace.answer ?? trace.final_text), null, 2)}\n</submitted_answer>`,
     trace.notes ? `<explorer_notes>\n${trace.notes}\n</explorer_notes>` : "",
     `<workflow_schema>\n${JSON.stringify(geminiSchema(z.toJSONSchema(WorkflowSchema, { io: "input" })))}\n</workflow_schema>`,
@@ -74,6 +97,7 @@ export async function compile(trace: Trace, opts: { name?: string } = {}): Promi
 
   const contents: Content[] = [{ role: "user", parts: [{ text: prompt }] }];
   let compiled: Workflow | undefined;
+  let derivedFrom: DerivedFrom = {};
   for (let attempt = 1; attempt <= MAX_ATTEMPTS && !compiled; attempt++) {
     const response = await gemini().models.generateContent({
       model: MODEL,
@@ -84,9 +108,11 @@ export async function compile(trace: Trace, opts: { name?: string } = {}): Promi
     contents.push(content);
     let errors: string[];
     try {
-      const result = validateWorkflow(JSON.parse(textOf(content)));
+      const { derived_from, ...draft } = JSON.parse(textOf(content)) as Record<string, unknown>;
+      const result = validateWorkflow(draft);
       if (result.ok) {
         compiled = result.workflow;
+        derivedFrom = parseDerivedFrom(derived_from, compiled, trace.calls.length);
         break;
       }
       errors = result.errors;
@@ -102,7 +128,7 @@ export async function compile(trace: Trace, opts: { name?: string } = {}): Promi
   if (!compiled) throw new Error(`Compiler didn't produce a valid workflow in ${MAX_ATTEMPTS} attempts.`);
 
   compiled.source = { goal: trace.goal, trace_id: trace.id, created_at: new Date().toISOString() };
-  return compiled;
+  return { workflow: compiled, derivedFrom };
 }
 
 /** explore -> compile -> save. The full "learn" loop used by the CLI and the MCP server. */

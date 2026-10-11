@@ -59,7 +59,15 @@ interface Tool<S extends z.ZodType> {
 
 const tool = <S extends z.ZodType>(t: Tool<S>) => t;
 
-export async function explore(goal: string, opts: { maxIterations?: number } = {}): Promise<Trace> {
+export interface ExploreOptions {
+  maxIterations?: number;
+  /** Called when a TinyFish call starts (index = its position in trace.calls). */
+  onTraceStart?: (index: number, call: { tool: string; input: unknown }) => void;
+  /** Called as each TinyFish call completes. */
+  onTrace?: (index: number, entry: TraceCall) => void;
+}
+
+export async function explore(goal: string, opts: ExploreOptions = {}): Promise<Trace> {
   const trace: Trace = { id: newId(), goal, model: MODEL, started_at: new Date().toISOString(), calls: [] };
   let submitted = false;
 
@@ -71,16 +79,22 @@ export async function explore(goal: string, opts: { maxIterations?: number } = {
     toTrace: (out: T) => unknown = (o) => o,
   ): Promise<Record<string, unknown>> {
     const started = Date.now();
+    // Reserve the slot now so parallel calls keep the order they were issued in.
+    const index = trace.calls.length;
+    trace.calls.push({ tool: name, input, duration_ms: 0 });
+    opts.onTraceStart?.(index, { tool: name, input });
     log(`  -> ${name} ${JSON.stringify(input).slice(0, 160)}`);
     try {
       const out = await fn();
-      trace.calls.push({ tool: name, input, output: toTrace(out), duration_ms: Date.now() - started });
+      trace.calls[index] = { tool: name, input, output: toTrace(out), duration_ms: Date.now() - started };
       return { output: toModel(out) };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      trace.calls.push({ tool: name, input, error: message, duration_ms: Date.now() - started });
+      trace.calls[index] = { tool: name, input, error: message, duration_ms: Date.now() - started };
       log(`     error: ${message}`);
       return { error: message };
+    } finally {
+      opts.onTrace?.(index, trace.calls[index]);
     }
   }
 

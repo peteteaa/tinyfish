@@ -11,6 +11,7 @@ const { extract, MODEL, FAST_MODEL } = await import("../src/llm.js");
 const { runWorkflow } = await import("../src/executor.js");
 const { learn } = await import("../src/compile.js");
 const { getWorkflow } = await import("../src/store.js");
+const { startLearnJob, subscribe } = await import("../src/jobs.js");
 
 const noGemini = !process.env.GEMINI_API_KEY && "GEMINI_API_KEY not set";
 const noKeys = noGemini || (!process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set");
@@ -70,4 +71,32 @@ test(`learn (live TinyFish + Gemini, ${MODEL}): explore, compile, save, rerun`, 
   console.error(`  trace: ${trace.calls.map((c) => c.tool).join(" -> ")}`);
   console.error(`  steps: ${workflow.steps.map((s) => `${s.id}(${s.type})`).join(" -> ")}`);
   console.error(`  rerun output: ${JSON.stringify(run.output).slice(0, 300)}`);
+});
+
+test("learn job (live): streams trace rows, answer and a draft with provenance, without saving", { skip: noKeys, timeout: 600_000 }, async () => {
+  const job = startLearnJob("Get the main heading of example.com", { name: "example_heading_job" });
+  const events = await new Promise<{ kind: string; [k: string]: any }[]>((resolve) => {
+    const seen: any[] = [];
+    subscribe(job, (e) => {
+      seen.push(e);
+      if (e.kind === "done" || e.kind === "error") resolve(seen);
+    });
+  });
+  const kinds = events.map((e) => e.kind);
+  assert.equal(kinds.at(-1), "done", JSON.stringify(events.find((e) => e.kind === "error")));
+  assert.equal(kinds[0], "started");
+  // Every finished trace row was announced first, and arrives before the answer.
+  const traces = events.filter((e) => e.kind === "trace");
+  assert.ok(traces.length >= 1);
+  for (const t of traces) assert.ok(kinds.indexOf("trace_start") <= kinds.indexOf("trace"));
+  assert.ok(kinds.lastIndexOf("trace") < kinds.indexOf("answer"));
+  assert.ok(kinds.indexOf("answer") < kinds.indexOf("compiling") && kinds.indexOf("compiling") < kinds.indexOf("draft"));
+
+  const draft = events.find((e) => e.kind === "draft")!;
+  assert.equal(draft.workflow.name, "example_heading_job");
+  for (const step of draft.workflow.steps) {
+    assert.ok(Array.isArray(draft.derived_from[step.id]), `no derived_from for ${step.id}`);
+    for (const i of draft.derived_from[step.id]) assert.ok(i >= 0 && i < traces.length);
+  }
+  assert.equal(getWorkflow("example_heading_job"), undefined, "a draft must not be saved until the user saves it");
 });

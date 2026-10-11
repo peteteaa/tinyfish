@@ -1,0 +1,12 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e46] [cursor=pointer]
+  - alert [ref=e50]: Learning a workflow
+  - main [ref=e51]:
+    - paragraph [ref=e52]:
+      - link "Back to saved workflows" [ref=e53] [cursor=pointer]:
+        - /url: /
+    - heading "Get the main heading and first paragraph of example.com" [level=1] [ref=e54]
+    - status [ref=e55]: Exploring with TinyFish…
+    - region [ref=e56]:
+      - heading "TinyFish calls" [level=2] [ref=e57]
+      - paragraph [ref=e58]: Waiting for the first TinyFish call…

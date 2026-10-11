@@ -12,6 +12,7 @@ const { validateWorkflow } = await import("../src/schema.js");
 const { runCheck, resolveParams, runWorkflow } = await import("../src/executor.js");
 const { getWorkflow, listRuns, listWorkflows, saveWorkflow } = await import("../src/store.js");
 const { geminiSchema } = await import("../src/llm.js");
+const { normalizeSchema } = await import("../src/tinyfish.js");
 
 const ctx = {
   params: { competitors: ["a.com", "b.com"], n: 2 },
@@ -80,6 +81,13 @@ test("geminiSchema strips $schema at every level and keeps the rest", () => {
   assert.equal(out.$schema, undefined);
   assert.equal(out.properties.a.$schema, undefined);
   assert.equal(out.properties.a.type, "string");
+});
+
+test("normalizeSchema lowercases types (TinyFish rejects OBJECT/STRING) without touching property names", () => {
+  assert.deepEqual(
+    normalizeSchema({ type: "OBJECT", properties: { TYPE: { type: "STRING" }, tags: { type: ["ARRAY", "NULL"], items: { type: "STRING" } } } }),
+    { type: "object", properties: { TYPE: { type: "string" }, tags: { type: ["array", "null"], items: { type: "string" } } } },
+  );
 });
 
 // Live: real TinyFish Fetch calls (free). Skipped, not faked, when no key is configured.
