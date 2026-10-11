@@ -40,7 +40,13 @@ A string that is exactly one {{...}} keeps the raw value (arrays/objects); other
 
 Checks (run on each step output, or each item's output under forEach): not_empty, min_items {value}, required_keys {keys},
 regex {pattern}; each takes an optional dotted path. A failed check flags the run for repair, so write checks that catch
-real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.`;
+real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.
+
+Grounding: every fact in the output must come from a search, fetch or agent step. An extract step only reads its
+"input"; it can't look anything up. So if the output covers or compares against another subject (the user's own
+company or product, a second competitor, a benchmark page), add a search/fetch step for that subject and put its text
+in the extract's input. A param that only appears inside an extract "instruction" gives Gemini a name, not data. Every
+declared param must be used by some step or the output.`;
 
 const SYSTEM = `You compile a recorded web-task trace into a reusable workflow: a JSON definition that a deterministic
 runner executes without an LLM in the loop (except inside "extract" steps). Reruns must be fast and cheap.

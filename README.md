@@ -100,7 +100,7 @@ Tools: list_workflows, run_workflow, learn_workflow, save_workflow, get_workflow
 | `search` | TinyFish Search (free) | `{query, results: [{title, url, snippet}]}` |
 | `fetch` | TinyFish Fetch (free) | `{results: [{url, final_url, title, text}], errors}` |
 | `agent` | TinyFish Agent (credits) | the agent's `result` |
-| `extract` | Gemini (`gemini-3.5-flash-lite`), JSON schema output | JSON matching `output_schema` |
+| `extract` | Gemini (`gemini-3.5-flash-lite`, falls back to other models), JSON schema output | JSON matching `output_schema` |
 
 Any step can take `forEach` (runs once per array element, bound to `{{item}}`), `concurrency` (default 4)
 and `checks` (`not_empty`, `min_items`, `required_keys`, `regex`, each with an optional dotted `path`).

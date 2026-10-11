@@ -1,6 +1,6 @@
 import type { EditTurn } from "@core/edit.js";
 import { startRepairJob } from "@core/jobs.js";
-import { validateWorkflow } from "@core/schema.js";
+import { WorkflowSchema } from "@core/schema.js";
 import { getRun, getWorkflow } from "@core/store.js";
 import { apiError, readJson } from "../../../lib/api";
 
@@ -25,9 +25,9 @@ export async function POST(request: Request) {
 
   let workflow = getWorkflow(run.workflow);
   if (body?.workflow !== undefined) {
-    const check = validateWorkflow(body.workflow);
-    if (!check.ok) return apiError(400, "invalid_workflow", "The workflow being repaired has errors.", { errors: check.errors });
-    workflow = check.workflow;
+    const check = WorkflowSchema.safeParse(body.workflow);
+    if (!check.success) return apiError(400, "invalid_workflow", "The workflow being repaired is malformed.", { errors: check.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`) });
+    workflow = check.data;
   }
   if (!workflow) return apiError(404, "workflow_not_found", `There's no saved workflow named "${run.workflow}".`);
   if (workflow.name !== run.workflow) return apiError(400, "wrong_workflow", `That run belongs to "${run.workflow}", not "${workflow.name}".`);

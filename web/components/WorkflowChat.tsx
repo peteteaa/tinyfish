@@ -48,6 +48,7 @@ function followRepair(jobId: string, onProgress: (line: string) => void): Promis
       else if (e.kind === "repair_proposal" && e.changed) onProgress(`Round ${round}: testing the fix…`);
       else if (e.kind === "test_step" && !e.status) onProgress(`Round ${round}: testing the fix (${e.step})…`);
       else if (e.kind === "test_done" && e.failed_step) onProgress(`Round ${round}: still fails at ${e.failed_step}; trying again…`);
+      else if (e.kind === "notice") onProgress(String(e.message));
       else if (e.kind === "repair_result") result = e as unknown as RepairResultBody;
       else if (e.kind === "error") {
         es.close();

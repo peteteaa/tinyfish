@@ -10,6 +10,7 @@ import type { EditTurn } from "./edit.js";
 import { repairAndVerify } from "./repair.js";
 import type { RunRecord } from "./store/types.js";
 import type { Workflow } from "./schema.js";
+import { withNotices } from "./progress.js";
 import { newId } from "./store.js";
 
 export type JobEvent = { kind: string; [key: string]: unknown };
@@ -59,7 +60,8 @@ export function startJob(type: Job["type"], body: (emit: (e: JobEvent) => void) 
   const job: Job = { id: newId(), type, status: "running", created_at: new Date().toISOString(), events: [], listeners: new Set() };
   jobs.set(job.id, job);
   const send = (e: JobEvent) => emit(job, e);
-  body(send)
+  // Waits inside Gemini/TinyFish calls (rate limits, model fallback) show up as "notice" events.
+  withNotices((message) => send({ kind: "notice", message }), () => body(send))
     .then(() => {
       job.status = "done";
       send({ kind: "done" });

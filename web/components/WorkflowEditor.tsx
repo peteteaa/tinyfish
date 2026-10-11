@@ -1,17 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { diffWorkflows, hasChanges } from "@core/diff.js";
+import { useEffect, useState } from "react";
 import type { Workflow } from "@core/schema.js";
 import { RunView } from "@/components/RunPanel";
 import { WorkflowChat } from "@/components/WorkflowChat";
 import { WorkflowOutline } from "@/components/WorkflowOutline";
+import { useWorkingCopy } from "@/components/WorkingCopy";
 
 /** Saved-workflow editor: chat changes into a working copy, see them in the outline, save as the next version. */
 export function WorkflowEditor({ workflow, testParams }: { workflow: Workflow; testParams?: Record<string, unknown> }) {
   const router = useRouter();
-  const [working, setWorking] = useState(workflow);
+  // The working copy lives in WorkingCopyProvider so the run panel runs the same edits.
+  const copy = useWorkingCopy();
+  if (!copy) throw new Error("WorkflowEditor must be inside WorkingCopyProvider");
+  const { working, setWorking, diff, dirty } = copy;
   const [epoch, setEpoch] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -23,12 +26,8 @@ export function WorkflowEditor({ workflow, testParams }: { workflow: Workflow; t
   // A new saved version (after save + refresh) becomes the baseline. Keyed on the version, not the object, so
   // other refreshes (e.g. after a run) don't wipe unsaved edits.
   useEffect(() => {
-    setWorking(workflow);
     setEpoch((e) => e + 1);
   }, [workflow.version]);
-
-  const diff = useMemo(() => diffWorkflows(workflow.name, workflow, working, workflow.version ?? 0, 0), [workflow, working]);
-  const dirty = hasChanges(diff);
 
   async function save() {
     if (busy || !dirty) return;
@@ -116,7 +115,7 @@ export function WorkflowEditor({ workflow, testParams }: { workflow: Workflow; t
         <div className={`panel save-bar${dirty ? " dirty" : ""}`} role="status">
           {dirty ? (
             <>
-              <span><strong>Unsaved changes.</strong> <span className="muted small">Runs use v{workflow.version} until you save.</span></span>
+              <span><strong>Unsaved changes.</strong> <span className="muted small">The Run panel runs them as a test; save to keep them.</span></span>
               <span className="save-bar-actions">
                 <button type="button" onClick={discard} disabled={busy}>Discard</button>
                 <button type="button" onClick={runTest} disabled={busy || testing}>{testing ? "Testing…" : "Test changes"}</button>

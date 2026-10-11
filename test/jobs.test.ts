@@ -42,3 +42,16 @@ test("jobs: a thrown error becomes an error event", async () => {
 test("jobs: unknown ids are not found", () => {
   assert.equal(getJob("nope"), undefined);
 });
+
+test("jobs: notice() deep inside a job's async work becomes a notice event for that job only", async () => {
+  const { notice } = await import("../src/progress.js");
+  const job = startJob("test", async () => {
+    await new Promise((r) => setTimeout(r, 5));
+    await Promise.all([1, 2].map(async (n) => notice(`waiting ${n}`)));
+  });
+  const other = startJob("test", async () => {});
+  const events = await finished(job);
+  assert.deepEqual(events.filter((e) => e.kind === "notice").map((e) => e.message), ["waiting 1", "waiting 2"]);
+  assert.ok(!(await finished(other)).some((e) => e.kind === "notice"));
+  notice("outside any job is a no-op");
+});

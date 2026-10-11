@@ -304,3 +304,5 @@ button.danger:hover { border-color: var(--fail); }
 .out-card-title { margin-bottom: 6px; }
 .out-card .out-card { background: var(--surface); }
 .out-raw { margin-top: 12px; }
+.run-edited { border-left: 3px solid var(--running); padding: 6px 0 6px 12px; margin-bottom: 14px; }
+.run-edited p { margin: 0; }

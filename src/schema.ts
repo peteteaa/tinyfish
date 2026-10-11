@@ -131,6 +131,24 @@ export function validateWorkflow(input: unknown): { ok: true; workflow: Workflow
   const errors: string[] = [];
   const seen = new Set<string>();
 
+  // A forEach step outputs an array (one entry per item); other steps output an object, unless their output_schema
+  // says array. Paths into a step must match: "{{steps.s.*.results}}" for a forEach search, "{{steps.e.brief}}" for
+  // a plain extract. Getting this wrong resolves to nothing at run time, silently.
+  const outputsArray = (step: Step) =>
+    step.forEach !== undefined ||
+    ((step.type === "extract" || step.type === "agent") && (step.output_schema as { type?: unknown } | undefined)?.type === "array");
+  const checkShape = (where: string, ref: string) => {
+    const [, id, next] = ref.split(".");
+    const step = wf.steps.find((s) => s.id === id);
+    if (!step || next === undefined) return;
+    const indexes = next === "*" || /^\d+$/.test(next);
+    if (outputsArray(step) && !indexes) {
+      errors.push(`${where}: "${id}" runs forEach, so its output is an array; use "{{${ref.split(".").slice(0, 2).join(".")}.*.${ref.split(".").slice(2).join(".")}}}" or an index, not "{{${ref}}}"`);
+    } else if (!outputsArray(step) && indexes) {
+      errors.push(`${where}: "${id}" has no forEach, so its output is a single object, not an array; drop "${next}" from "{{${ref}}}"`);
+    }
+  };
+
   const checkRefs = (where: string, value: unknown, inForEach: boolean) => {
     for (const ref of refsIn(value)) {
       const [root, head] = ref.split(".");
@@ -138,8 +156,10 @@ export function validateWorkflow(input: unknown): { ok: true; workflow: Workflow
         if (!head || !(head in wf.params)) errors.push(`${where}: unknown param "${ref}"`);
       } else if (root === "steps") {
         if (!head || !seen.has(head)) errors.push(`${where}: "${ref}" must reference an earlier step`);
+        else checkShape(where, ref);
       } else if (root === "previous") {
         if (!head || !wf.steps.some((s) => s.id === head)) errors.push(`${where}: unknown step in "${ref}"`);
+        else checkShape(where, ref);
       } else if (root === "item") {
         if (!inForEach) errors.push(`${where}: {{item}} used outside a forEach step`);
       } else {
@@ -174,6 +194,11 @@ export function validateWorkflow(input: unknown): { ok: true; workflow: Workflow
     else errors.push(`steps.${step.id}: an ${step.type} step must read the output of a search, fetch or agent step (directly or through another step), so its data comes from the web`);
   }
   if (!wf.steps.some((s) => WEB.has(s.type))) errors.push("steps: a workflow needs at least one search, fetch or agent step");
+
+  const usedParams = new Set(refsIn([wf.steps, wf.output]).filter((r) => r.startsWith("params.")).map((r) => r.split(".")[1]));
+  for (const name of Object.keys(wf.params)) {
+    if (!usedParams.has(name)) errors.push(`params.${name}: declared but no step or output uses it; use it or remove it`);
+  }
 
   return errors.length ? { ok: false, errors } : { ok: true, workflow: wf };
 }

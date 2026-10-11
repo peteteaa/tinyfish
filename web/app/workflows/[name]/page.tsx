@@ -8,6 +8,7 @@ import { ExportPanel } from "@/components/ExportPanel";
 import { DeleteWorkflowButton } from "@/components/DeleteWorkflowButton";
 import { WorkflowEditor } from "@/components/WorkflowEditor";
 import { RepairProvider } from "@/components/Repair";
+import { WorkingCopyProvider } from "@/components/WorkingCopy";
 import { SOURCE_LABEL } from "@/lib/learnEvents";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default async function WorkflowPage({
   return (
     <main className="column">
       <RepairProvider>
+      <WorkingCopyProvider workflow={wf}>
         <p className="small"><Link href="/">Back to saved workflows</Link></p>
         {Number.isFinite(learned) && learnedRaw !== undefined && <p className="status status-ok" role="status">Workflow saved. Learned in {learned}s.</p>}
         <h1>{wf.name}</h1>
@@ -60,7 +62,7 @@ export default async function WorkflowPage({
 
         <section className="panel">
           <details>
-            <summary>Workflow JSON</summary>
+            <summary>Saved workflow JSON (v{wf.version})</summary>
             <pre className="json">{JSON.stringify(wf, null, 2)}</pre>
           </details>
         </section>
@@ -70,6 +72,7 @@ export default async function WorkflowPage({
           <p className="muted">Removes every version of {wf.name} and its run history. This can&apos;t be undone.</p>
           <DeleteWorkflowButton name={wf.name} redirectTo="/" />
         </section>
+      </WorkingCopyProvider>
       </RepairProvider>
     </main>
   );

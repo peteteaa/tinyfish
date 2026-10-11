@@ -262,6 +262,13 @@ export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown
   if (run.status !== "error") {
     try {
       run.output = wf.output !== undefined ? resolve(wf.output, ctx) : ctx.steps[wf.steps.at(-1)!.id];
+      // Steps produced data but the output template picked none of it: a wrong path, not a passing run.
+      const empty = (v: unknown): boolean =>
+        v === undefined || v === null || v === "" || (typeof v === "object" && !Array.isArray(v) && Object.values(v).every(empty));
+      if (empty(run.output) && run.steps.some((s) => s.output !== undefined && s.output !== null)) {
+        run.status = "error";
+        run.error = `output: ${JSON.stringify(wf.output)} resolved to nothing although the steps produced data; check the template path`;
+      }
     } catch (err) {
       run.status = "error";
       run.error = `output: ${err instanceof Error ? err.message : String(err)}`;

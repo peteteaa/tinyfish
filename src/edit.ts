@@ -57,8 +57,13 @@ export async function editWorkflow(
   history: EditTurn[] = [],
   opts: EditOptions = {},
 ): Promise<EditResult> {
-  const base = validateWorkflow(current);
-  if (!base.ok) throw new Error(`The current workflow is invalid:\n- ${base.errors.join("\n- ")}`);
+  // Only the shape must be right. Saved workflows can predate newer rules (e.g. unused params); editing is how
+  // they get fixed, so their problems go to Gemini to fix along with the request instead of blocking the edit.
+  const shape = WorkflowSchema.safeParse(current);
+  if (!shape.success) throw new Error(`The current workflow is malformed:\n- ${shape.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n- ")}`);
+  const base = { workflow: shape.data };
+  const check = validateWorkflow(current);
+  const problems = check.ok ? [] : check.errors;
   const { version, source, ...editable } = base.workflow;
 
   const earlier = history
@@ -70,6 +75,9 @@ export async function editWorkflow(
     `<current_workflow>\n${JSON.stringify(editable, null, 2)}\n</current_workflow>`,
     source?.goal ? `<original_goal>\n${source.goal}\n</original_goal>` : "",
     earlier ? `<earlier_conversation>\n${earlier}\n</earlier_conversation>` : "",
+    problems.length
+      ? `<current_problems>\nThe current workflow breaks these rules; fix them too:\n- ${problems.join("\n- ")}\n</current_problems>`
+      : "",
     opts.context ?? "",
     `<request>\n${instruction}\n</request>`,
   ]

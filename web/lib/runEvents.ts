@@ -6,6 +6,7 @@ export type RunEvent =
   | { kind: "step_end"; step: string; record: StepRecord }
   | { kind: "repair_available"; step: string; failures: CheckResult[] }
   | { kind: "run_done"; run: RunRecord }
+  | { kind: "notice"; message: string }
   | { kind: "error"; message: string }
   | { kind: "done" };
 
@@ -26,6 +27,8 @@ export interface RunState {
   repair: Record<string, CheckResult[]>;
   run?: RunRecord;
   error?: string;
+  /** Latest wait/fallback notice (e.g. Gemini rate limited); cleared when real progress arrives. */
+  notice?: string;
   finished: boolean;
 }
 
@@ -34,6 +37,11 @@ export function reduceRunEvents(events: unknown[]): RunState {
   const find = (id: string) => s.steps.find((x) => x.id === id);
   for (const raw of events) {
     const e = raw as RunEvent;
+    if (e.kind === "notice") {
+      s.notice = e.message;
+      continue;
+    }
+    s.notice = undefined;
     switch (e.kind) {
       case "run_started":
         s.started = { workflow: e.workflow, version: e.version, params: e.params };

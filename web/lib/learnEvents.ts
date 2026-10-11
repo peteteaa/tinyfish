@@ -15,6 +15,7 @@ export type LearnEvent =
   | { kind: "answer"; answer: unknown; notes: string; text: string }
   | { kind: "compiling" }
   | { kind: "draft"; workflow: Workflow; derived_from: Record<string, number[]>; trace_id: string; elapsed_ms: number }
+  | { kind: "notice"; message: string }
   | { kind: "error"; message: string }
   | { kind: "done" };
 
@@ -35,6 +36,8 @@ export interface LearnState {
   compiling: boolean;
   draft?: { workflow: Workflow; derived_from: Record<string, number[]>; elapsed_ms: number };
   error?: string;
+  /** Latest wait/fallback notice (e.g. Gemini rate limited); cleared when real progress arrives. */
+  notice?: string;
   done: boolean;
 }
 
@@ -42,6 +45,11 @@ export function reduceLearnEvents(events: LearnEvent[]): LearnState {
   const s: LearnState = { goal: "", rows: [], compiling: false, done: false };
   const byIndex = new Map<number, TraceRow>();
   for (const e of events) {
+    if (e.kind === "notice") {
+      s.notice = e.message;
+      continue;
+    }
+    s.notice = undefined;
     switch (e.kind) {
       case "started":
         s.goal = e.goal;

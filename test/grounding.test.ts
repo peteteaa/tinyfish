@@ -62,3 +62,39 @@ test("explore (live TinyFish + Gemini): a goal missing its input still reads the
   assert.ok(trace.calls.some(returnedContent), `no TinyFish call returned content: ${tools.join(", ") || "(none)"}`);
   assert.ok(trace.answer !== undefined, "explorer never submitted an answer");
 });
+
+test("validateWorkflow: paths must match whether the step runs forEach", () => {
+  const base = {
+    name: "shapes",
+    description: "search per company, fetch, extract",
+    params: { companies: { type: "string[]" as const, description: "companies", default: ["stripe"] } },
+  };
+  const steps = (urls: string, output: string) => ({
+    steps: [
+      { id: "find", type: "search", forEach: "{{params.companies}}", query: "{{item}}" },
+      { id: "fetch_pages", type: "fetch", urls },
+      { id: "brief", type: "extract", input: "{{steps.fetch_pages.results.0.text}}", instruction: "brief", output_schema: schema },
+    ],
+    output,
+  });
+  const good = validateWorkflow({ ...base, ...steps("{{steps.find.*.results.0.url}}", "{{steps.brief}}") });
+  assert.equal(good.ok, true, good.ok ? "" : good.errors.join("\n"));
+  // The two real bugs: reading a forEach step as if it weren't, and indexing a single object.
+  const bad = validateWorkflow({ ...base, ...steps("{{steps.find.results.*.url}}", "{{steps.brief.0}}") });
+  assert.equal(bad.ok, false);
+  if (!bad.ok) {
+    assert.ok(bad.errors.some((e) => /"find" runs forEach/.test(e)), bad.errors.join("\n"));
+    assert.ok(bad.errors.some((e) => /"brief" has no forEach.*drop "0"/.test(e)), bad.errors.join("\n"));
+  }
+});
+
+test("validateWorkflow: a declared param no step uses is rejected", () => {
+  const r = validateWorkflow({
+    name: "unused",
+    description: "x",
+    params: { url: { type: "string", description: "page", default: "example.com" }, extra: { type: "string", description: "unused", default: "" } },
+    steps: [{ id: "fetch_page", type: "fetch", urls: "{{params.url}}" }],
+  });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.ok(r.errors.some((e) => /params\.extra: declared but no step or output uses it/.test(e)), r.errors.join("\n"));
+});

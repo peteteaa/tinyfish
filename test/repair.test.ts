@@ -9,7 +9,7 @@ process.env.WM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "wm-repair-test-
 
 const { guardChecks, repairAndVerify, repairWorkflow, runEvidence, shapeOf } = await import("../src/repair.js");
 const { runStep, runWorkflowDef } = await import("../src/executor.js");
-const { isTransientGeminiError } = await import("../src/llm.js");
+const { isTransientGeminiError, quotaExhausted } = await import("../src/llm.js");
 const { getWorkflow } = await import("../src/store.js");
 const { MODEL } = await import("../src/llm.js");
 
@@ -136,4 +136,18 @@ test(`repairAndVerify (live TinyFish + Gemini, ${MODEL}): fixes a wrong forEach 
   const urls = result.workflow.steps.find((s) => s.id === "fetch_pages") as { urls: unknown };
   assert.match(String(urls.urls), /find_pricing_pages\.(\*|\d+)\./);
   assert.equal(result.workflow.source?.repaired_from, 1);
+});
+
+test("quotaExhausted: a used-up daily quota fails at once with what to do; a per-minute limit is retried", () => {
+  const daily = Object.assign(
+    new Error('{"error":{"code":429,"message":"Quota exceeded for metric: generate_content_free_tier_requests, limit: 500, model: gemini-3.5-flash-lite","details":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"},{"retryDelay":"5445s"}]}}'),
+    { status: 429 },
+  );
+  const err = quotaExhausted(daily);
+  assert.ok(err, "daily quota should fail fast");
+  assert.match(err.message, /daily limit: 500 requests for gemini-3\.5-flash-lite\)\. It resets in about 91 min/);
+  assert.ok(isTransientGeminiError(err), "still counted as transient, so repair doesn't edit the workflow over it");
+  const perMinute = Object.assign(new Error('{"error":{"code":429,"details":[{"quotaId":"GenerateRequestsPerMinutePerProjectPerModel-FreeTier"},{"retryDelay":"40s"}]}}'), { status: 429 });
+  assert.equal(quotaExhausted(perMinute), undefined);
+  assert.equal(quotaExhausted(Object.assign(new Error("bad request"), { status: 400 })), undefined);
 });
