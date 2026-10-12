@@ -1,13 +1,14 @@
 import { after } from "next/server";
 import { startLearnJob } from "@core/jobs.js";
 import { apiError, readJson } from "../../../lib/api";
+import { withUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 /** Seconds a job may run after the response (Vercel; the platform caps this per plan). */
 export const maxDuration = 300;
 
 /** POST { goal, name? } -> 202 { jobId }. Subscribe at /api/jobs/:jobId/events. */
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = await readJson(request);
   const goal = typeof body?.goal === "string" ? body.goal.trim() : "";
   if (!goal) return apiError(400, "missing_goal", "Describe the web task you want learned.");
@@ -17,4 +18,4 @@ export async function POST(request: Request) {
   // On serverless hosts the function would stop once the response is sent; after() keeps the job running.
   after(() => job.done);
   return Response.json({ jobId: job.id }, { status: 202 });
-}
+});

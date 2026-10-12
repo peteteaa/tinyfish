@@ -59,10 +59,25 @@ root (`web/vercel.json`), so `src/` and its dependencies ship with the app.
 - **Jobs:** learn, run and repair routes keep the job running after the response with `after(job.done)`
   (`maxDuration` 300s). Every job event is also written to the store, so `/api/jobs/:id/events` streams it from any
   instance (memory when the job runs on that instance, otherwise by polling the store).
-- **Env vars:** `TINYFISH_API_KEY`, `GEMINI_API_KEY`, and `DATABASE_URL` (added by the Neon Marketplace integration).
+- **Env vars:** `TINYFISH_API_KEY`, `GEMINI_API_KEY`, `DATABASE_URL` (added by the Neon Marketplace integration), and
+  `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` (added by the Clerk integration).
+- **Accounts:** with the Clerk keys set, visitors sign in (Clerk; turn on GitHub, Google etc. in the Clerk dashboard) and
+  each user has their own workflows, runs, traces and jobs. Workflow names only need to be unique per user, and every user
+  starts with the seed workflows. Without the keys the app is single-user, as before: everyone is `local`.
 
     vercel integration add neon --plan free_v3 -m region=iad1   # once; accept the terms in the browser
+    vercel integration add clerk                                # once; accept the terms in the browser
     vercel deploy                                               # preview; add --prod for production
+
+### Owners
+
+Every store call acts as an owner (`runAs` / `currentOwner` in `src/store.ts`). The web app binds the signed-in Clerk user
+id per request (`web/lib/auth.ts`: `withUser` for API routes, `asUser` for pages), and jobs keep running as whoever started
+them. The CLI and MCP server act as `WM_OWNER` (default `local`). Data stored before owners existed belongs to `local`.
+To use a hosted user's workflows from the CLI, point it at the same database and set `WM_OWNER` to their Clerk user id
+(`user_...`, shown in the Clerk dashboard):
+
+    DATABASE_URL=... WM_OWNER=user_2abc... npm run list
 
 ## Use from Claude Desktop / Cursor (MCP)
 
@@ -139,7 +154,7 @@ Run statuses: `ok`, `check_failed` (finished, but a check flagged it for repair)
     src/repair.ts     repair: Gemini fixes a failed step from the run's evidence; won't weaken a check every item failed
     src/diff.ts       structural diff between two workflows (shared with the web client)
     src/store.ts      storage facade: versioned workflows (with source), run history, traces, diff
-    src/store/        SQLite (default, node:sqlite) and JSON-file backends; STORAGE=sqlite|files
+    src/store/        SQLite (default, node:sqlite), JSON-file and Postgres backends, each scoped per owner; STORAGE=sqlite|files|postgres
     src/env.ts        .env loading, paths, config
     src/cli.ts        CLI
     src/mcp.ts        MCP server (stdio)

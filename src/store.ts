@@ -3,7 +3,13 @@
 //   files             <data>/workflows, runs, traces, jobs as JSON files
 //   postgres          DATABASE_URL (Neon); the default when DATABASE_URL is set, e.g. on Vercel
 // Select with STORAGE=sqlite|files|postgres. Workflows in seeds/ are inserted as v1 (source "import") on first touch.
+//
+// Everything is scoped to an owner: each user has their own workflows (names only need to be unique per owner), runs,
+// traces and jobs. The functions below act as the current owner: the web app wraps each request in runAs(userId)
+// (web/lib/auth.ts), and AsyncLocalStorage carries it into the jobs a request starts. The CLI and MCP server act as
+// WM_OWNER, default "local" (which is also who owns data stored before owners existed).
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { DATA_DIR, DATABASE_URL, SEEDS_DIR, STORAGE } from "./env.js";
 import type { Workflow } from "./schema.js";
 import { makeStore } from "./store/common.js";
@@ -16,19 +22,46 @@ export type {
   CheckResult, JobInfo, RunRecord, StepRecord, Store, VersionInfo, VersionSource, WorkflowDiff, WorkflowSummary,
 } from "./store/types.js";
 
-/** `location` is the data directory (sqlite, files) or the connection string (postgres). */
-export function createStore(kind: "sqlite" | "files" | "postgres", location: string): Store {
-  const backend = kind === "postgres" ? postgresBackend(location) : kind === "sqlite" ? sqliteBackend(location) : filesBackend(location);
-  return makeStore(backend, SEEDS_DIR);
+export const LOCAL_OWNER = "local";
+
+const owners = new AsyncLocalStorage<string>();
+
+/** Runs `fn` (and everything it starts, including background jobs) as `owner`. */
+export function runAs<T>(owner: string, fn: () => T): T {
+  if (!owner) throw new Error("runAs needs an owner.");
+  return owners.run(owner, fn);
 }
 
-let defaultStore: Store | undefined;
+export function currentOwner(): string {
+  return owners.getStore() ?? (process.env.WM_OWNER || LOCAL_OWNER);
+}
+
+/**
+ * One connection (or directory) shared by every owner; returns each owner's store, created on first use.
+ * `location` is the data directory (sqlite, files) or the connection string (postgres).
+ */
+export function createStores(kind: "sqlite" | "files" | "postgres", location: string): (owner: string) => Store {
+  const backend = kind === "postgres" ? postgresBackend(location) : kind === "sqlite" ? sqliteBackend(location) : filesBackend(location);
+  const stores = new Map<string, Store>();
+  return (owner) => {
+    let s = stores.get(owner);
+    if (!s) stores.set(owner, (s = makeStore(backend(owner), SEEDS_DIR)));
+    return s;
+  };
+}
+
+/** One owner's store (see createStores). */
+export function createStore(kind: "sqlite" | "files" | "postgres", location: string, owner = LOCAL_OWNER): Store {
+  return createStores(kind, location)(owner);
+}
+
+let defaultStores: ((owner: string) => Store) | undefined;
 const def = () => {
-  if (!defaultStore) {
+  if (!defaultStores) {
     if (STORAGE === "postgres" && !DATABASE_URL) throw new Error("STORAGE=postgres needs DATABASE_URL.");
-    defaultStore = createStore(STORAGE, STORAGE === "postgres" ? DATABASE_URL! : DATA_DIR);
+    defaultStores = createStores(STORAGE, STORAGE === "postgres" ? DATABASE_URL! : DATA_DIR);
   }
-  return defaultStore;
+  return defaultStores(currentOwner());
 };
 
 export const listWorkflows = () => def().listWorkflows();

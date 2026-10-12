@@ -2,6 +2,8 @@
 // Events are kept in memory (fast path when the subscriber is on the same server) and also written to the store,
 // so on serverless hosts (Vercel) any instance can stream them. There, the route that starts a job keeps it running
 // with after(job.done). In-memory copies are dropped 30 minutes after the job finishes.
+// A job belongs to the owner who started it (see runAs in src/store.ts) and is invisible to everyone else; its body
+// runs as that owner, so the workflows, runs and traces it saves are theirs.
 
 import { compileDetailed } from "./compile.js";
 import { log } from "./env.js";
@@ -12,7 +14,7 @@ import { withNotices } from "./progress.js";
 import { repairAndVerify } from "./repair.js";
 import type { Workflow } from "./schema.js";
 import type { RunRecord } from "./store/types.js";
-import { jobStore, newId } from "./store.js";
+import { currentOwner, jobStore, newId } from "./store.js";
 
 export type JobEvent = { kind: string; [key: string]: unknown };
 type Listener = (e: JobEvent) => void;
@@ -20,6 +22,7 @@ type Listener = (e: JobEvent) => void;
 export interface Job {
   id: string;
   type: "learn" | "run" | "repair" | "test";
+  owner: string;
   status: "running" | "done" | "error";
   created_at: string;
   events: JobEvent[];
@@ -41,10 +44,11 @@ function sweep() {
   for (const [id, job] of jobs) if (job.finishedAt && now - job.finishedAt > EXPIRE_MS) jobs.delete(id);
 }
 
-/** The in-memory job, if it runs (or recently ran) on this server instance. */
+/** The current owner's in-memory job, if it runs (or recently ran) on this server instance. */
 export function getJob(id: string): Job | undefined {
   sweep();
-  return jobs.get(id);
+  const job = jobs.get(id);
+  return job?.owner === currentOwner() ? job : undefined;
 }
 
 /** Replays buffered events, then streams new ones. Returns an unsubscribe function. */
@@ -106,7 +110,9 @@ export async function followJob(
 export function startJob(type: Job["type"], body: (emit: (e: JobEvent) => void) => Promise<void>): Job {
   sweep();
   const created_at = new Date().toISOString();
-  const job: Job = { id: newId(), type, status: "running", created_at, events: [], listeners: new Set(), done: Promise.resolve() };
+  const job: Job = {
+    id: newId(), type, owner: currentOwner(), status: "running", created_at, events: [], listeners: new Set(), done: Promise.resolve(),
+  };
   jobs.set(job.id, job);
   const store = jobStore();
   let persisted: Promise<unknown> = store.createJob({ id: job.id, type, status: "running", created_at });

@@ -4,6 +4,7 @@ import { startRepairJob } from "@core/jobs.js";
 import { WorkflowSchema } from "@core/schema.js";
 import { getRun, getWorkflow } from "@core/store.js";
 import { apiError, readJson } from "../../../lib/api";
+import { withUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 /** Seconds a job may run after the response (Vercel; the platform caps this per plan). */
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * (it may carry unsaved edits); it defaults to the latest saved version. Nothing is saved; POST /api/workflows
  * with source "repair" to save.
  */
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = await readJson(request);
   const runId = typeof body?.run_id === "string" ? body.run_id : "";
   const step = typeof body?.step === "string" ? body.step : "";
@@ -48,4 +49,4 @@ export async function POST(request: Request) {
   // On serverless hosts the function would stop once the response is sent; after() keeps the job running.
   after(() => job.done);
   return Response.json({ jobId: job.id }, { status: 202 });
-}
+});
