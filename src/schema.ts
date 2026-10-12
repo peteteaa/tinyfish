@@ -254,17 +254,49 @@ export function parameterize<T extends Pick<Workflow, "params" | "steps">>(wf: T
     for (const f of TEXT_FIELDS) {
       const v = next[f];
       if (typeof v === "string") {
-        const r = rewrite(v);
+        // The field-name note quotes example values on purpose; leave it as written.
+        const at = v.indexOf(FIELD_NOTE);
+        const r = at < 0 ? rewrite(v) : rewrite(v.slice(0, at)) + v.slice(at);
         if (r !== v) {
           next[f] = r;
           changed = true;
         }
       }
     }
+    // Field names can't hold templates, and a field named after the example ("comparison_with_gitlab") steers
+    // Gemini to the example. Tell it which input each such name stands for; the output shape stays the same.
+    if (step.type === "extract" && typeof next.instruction === "string") {
+      const names = propertyNames(step.output_schema);
+      const notes = values
+        .filter(({ needle }) => names.some((n) => identifierHas(n, needle)))
+        .map(({ param, needle }) => `fields whose names mention "${needle.toLowerCase()}" are about {{params.${param}}}`);
+      const unique = [...new Set(notes)];
+      const current = next.instruction as string;
+      const at = current.indexOf(FIELD_NOTE);
+      const base = at < 0 ? current : current.slice(0, at).trimEnd();
+      const wanted = unique.length ? `${base}\n\n${FIELD_NOTE} ${unique.join("; ")}. Fill them with data about those inputs.` : base;
+      if (wanted !== current) {
+        next.instruction = wanted; // adds the note, refreshes it, or drops it once no field is named after an example
+        changed = true;
+      }
+    }
     return next as unknown as Step;
   });
   return changed ? { ...wf, steps } : wf;
 }
+
+const FIELD_NOTE = "Field names come from an earlier example run:";
+
+/** All property names in a JSON schema, nested ones included. */
+function propertyNames(schema: unknown): string[] {
+  if (!schema || typeof schema !== "object") return [];
+  const sch = schema as { properties?: Record<string, unknown>; items?: unknown };
+  return [...Object.keys(sch.properties ?? {}), ...Object.values(sch.properties ?? {}).flatMap(propertyNames), ...propertyNames(sch.items)];
+}
+
+/** "comparison_with_gitlab" has "gitlab"; underscores, dashes and dots count as word breaks. */
+const identifierHas = (name: string, needle: string) =>
+  new RegExp(`(^|[^a-z0-9])${esc(needle.replace(/[_\-.\s]+/g, " "))}($|[^a-z0-9])`, "i").test(name.replace(/[_\-.]+/g, " "));
 
 /** parameterize() for input that may not be a workflow yet (drafts, request bodies); returns it unchanged if not. */
 export function parameterizeInput(input: unknown): unknown {
@@ -284,17 +316,13 @@ export function hardcodedDefaults(wf: Workflow): string[] {
   if (!values.length) return [];
   const found = new Set<string>();
   const check = (where: string, text: string) => {
-    const plain = text.replace(/\{\{[^}]*\}\}/g, " ").replace(/_/g, " ");
+    const note = text.indexOf(FIELD_NOTE);
+    const plain = (note < 0 ? text : text.slice(0, note)).replace(/\{\{[^}]*\}\}/g, " ").replace(/_/g, " ");
     for (const { param, needle } of values) {
       if (new RegExp(`(^|[^a-z0-9])${esc(needle)}($|[^a-z0-9])`, "i").test(plain)) {
         found.add(`${where}: contains "${needle}", the example value (default) of params.${param}; use {{params.${param}}} or a generic word so it follows the input`);
       }
     }
-  };
-  const propertyNames = (schema: unknown): string[] => {
-    if (!schema || typeof schema !== "object") return [];
-    const sch = schema as { properties?: Record<string, unknown>; items?: unknown };
-    return [...Object.keys(sch.properties ?? {}), ...Object.values(sch.properties ?? {}).flatMap(propertyNames), ...propertyNames(sch.items)];
   };
   for (const step of wf.steps) {
     const fields = step as unknown as Record<string, unknown>;

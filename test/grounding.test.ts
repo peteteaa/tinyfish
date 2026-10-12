@@ -164,3 +164,18 @@ test("saveWorkflow: saving parameterizes literal example values", async () => {
   assert.equal(steps[0].query, "{{params.company}} funding");
   assert.equal(steps[1].instruction, "Summarize {{params.company}} (e.g. {{params.company}}).");
 });
+
+test("parameterize: fields named after an example get a note mapping them to the input; it goes once they're renamed", async () => {
+  const { parameterize } = await import("../src/schema.js");
+  const wf = (prop: string) => ({
+    params: { comparison_company: { type: "string" as const, description: "compare against", default: "GitLab" } },
+    steps: [{ id: "analysis", type: "extract" as const, input: "x", instruction: "Compare.", output_schema: { type: "object", properties: { [prop]: { type: "object" } } } }],
+  });
+  const noted = parameterize(wf("comparison_with_gitlab"));
+  const instruction = (noted.steps[0] as unknown as { instruction: string }).instruction;
+  assert.match(instruction, /fields whose names mention "gitlab" are about \{\{params\.comparison_company\}\}/);
+  assert.equal(parameterize(noted), noted, "idempotent");
+  // After an edit renames the field, the stale note is dropped.
+  const renamed = { ...noted, steps: [{ ...noted.steps[0], output_schema: { type: "object", properties: { comparison: { type: "object" } } } }] };
+  assert.equal((parameterize(renamed).steps[0] as unknown as { instruction: string }).instruction, "Compare.");
+});
