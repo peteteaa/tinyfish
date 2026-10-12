@@ -77,7 +77,7 @@ async function main() {
       return;
     }
     case "list": {
-      const wfs = listWorkflows();
+      const wfs = await listWorkflows();
       if (!wfs.length) return out("No workflows yet.");
       for (const w of wfs) {
         const params = Object.entries(w.params)
@@ -89,24 +89,24 @@ async function main() {
       return;
     }
     case "show": {
-      const wf = getWorkflow(positional[0] ?? "", version);
+      const wf = await getWorkflow(positional[0] ?? "", version);
       if (!wf) throw new Error(`No workflow named "${positional[0]}"`);
       out(wf);
-      if (flags.trace && wf.source?.trace_id) out(getTrace(wf.source.trace_id) ?? "trace not found");
+      if (flags.trace && wf.source?.trace_id) out((await getTrace(wf.source.trace_id)) ?? "trace not found");
       return;
     }
     case "runs": {
       const name = positional[0];
       if (!name) throw new Error("usage: runs <name>");
       const limit = typeof flags.limit === "string" ? Number(flags.limit) : 10;
-      for (const r of listRuns(name, limit)) {
+      for (const r of await listRuns(name, limit)) {
         out(`${r.run_id}  v${r.version}  ${r.status}  ${(r.duration_ms / 1000).toFixed(1)}s  ${JSON.stringify(r.params)}`);
       }
       return;
     }
     case "save": {
       const fs = await import("node:fs");
-      const wf = saveWorkflow(JSON.parse(fs.readFileSync(positional[0], "utf8")), "cli");
+      const wf = await saveWorkflow(JSON.parse(fs.readFileSync(positional[0], "utf8")), "cli");
       out(`Saved ${wf.name} v${wf.version}`);
       return;
     }
@@ -114,23 +114,23 @@ async function main() {
       const [name, ...words] = positional;
       const instruction = words.join(" ");
       if (!name || !instruction) throw new Error('usage: edit <name> "<change>" [--dry-run]');
-      const wf = getWorkflow(name, version);
+      const wf = await getWorkflow(name, version);
       if (!wf) throw new Error(`No workflow named "${name}"`);
       const result = await editWorkflow(wf, instruction);
       log(result.reply);
       if (!result.changed) return;
       if (flags["dry-run"]) return out(result.workflow);
       const { version: _v, ...draft } = result.workflow;
-      const saved = saveWorkflow(draft, "cli");
+      const saved = await saveWorkflow(draft, "cli");
       out(`Saved ${saved.name} v${saved.version}`);
       return;
     }
     case "repair": {
-      const run = getRun(positional[0] ?? "");
+      const run = await getRun(positional[0] ?? "");
       if (!run) throw new Error("usage: repair <run_id> [step]  (run ids are listed by `runs <name>`)");
       const stepId = positional[1] ?? run.steps.find((s) => s.status !== "ok")?.id;
       if (!stepId) throw new Error(`Every step passed in run ${run.run_id}; there's nothing to repair.`);
-      const wf = getWorkflow(run.workflow);
+      const wf = await getWorkflow(run.workflow);
       if (!wf) throw new Error(`No workflow named "${run.workflow}"`);
       if (flags["no-test"]) {
         const result = await repairWorkflow(wf, run, stepId);
@@ -138,7 +138,7 @@ async function main() {
         if (!result.changed) return;
         if (flags["dry-run"]) return out(result.workflow);
         const { version: _v, ...draft } = result.workflow;
-        const saved = saveWorkflow(draft, "repair");
+        const saved = await saveWorkflow(draft, "repair");
         out(`Saved ${saved.name} v${saved.version} (repaired from v${run.version}, untested)`);
         return;
       }
@@ -157,14 +157,14 @@ async function main() {
       }
       if (flags["dry-run"]) return out(result.workflow);
       const { version: _v, ...draft } = result.workflow;
-      const saved = saveWorkflow(draft, "repair");
+      const saved = await saveWorkflow(draft, "repair");
       out(`Saved ${saved.name} v${saved.version} (repaired from v${run.version})`);
       return;
     }
     case "delete": {
       const name = positional[0];
       if (!name) throw new Error("usage: delete <name>");
-      if (!deleteWorkflow(name)) throw new Error(`No workflow named "${name}"`);
+      if (!(await deleteWorkflow(name))) throw new Error(`No workflow named "${name}"`);
       out(`Deleted ${name}`);
       return;
     }

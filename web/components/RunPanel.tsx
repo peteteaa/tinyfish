@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Param } from "@core/schema.js";
 import { OutputView, summarizeValue } from "@/components/OutputView";
 import { RepairButton } from "@/components/Repair";
+import { useWorkingCopy } from "@/components/WorkingCopy";
 import { useJobEvents } from "@/lib/useJobEvents";
 import { formatDuration } from "@/lib/learnEvents";
 import { countCalls, reduceRunEvents, STATUS_WORD, type RunStepView } from "@/lib/runEvents";
@@ -108,6 +109,7 @@ export function RunView({ jobId, forEachIds, onDone, trial }: { jobId: string; f
       {status === "lost" && !state.finished && <p className="error-text">Connection lost. Reconnecting…</p>}
       {state.error && <p className="error-text" role="alert">{state.error}</p>}
       {state.steps.length === 0 && !state.error && status !== "not_found" && <p className="muted">Starting…</p>}
+      {running && state.notice && <p className="status status-running small">{state.notice}</p>}
       <ol className="plain">
         {state.steps.map((s, i) => <StepRow key={s.id} step={s} index={i} now={now} failures={state.repair[s.id]} runId={state.run?.run_id} trial={trial} />)}
       </ol>
@@ -126,15 +128,33 @@ export function RunView({ jobId, forEachIds, onDone, trial }: { jobId: string; f
   );
 }
 
-export function RunPanel({ name, params, forEachIds }: { name: string; params: Record<string, Param>; forEachIds: string[] }) {
+export function RunPanel({ name, params: savedParams, forEachIds: savedForEach }: { name: string; params: Record<string, Param>; forEachIds: string[] }) {
   const router = useRouter();
+  // With unsaved edits in the editor, runs use the edited copy (as a test run) unless the user picks the saved one.
+  const copy = useWorkingCopy();
+  const [useSaved, setUseSaved] = useState(false);
+  const edited = copy?.dirty && !useSaved ? copy.working : null;
+  const params = edited?.params ?? savedParams;
+  const forEachIds = edited ? edited.steps.filter((s) => s.forEach !== undefined).map((s) => s.id) : savedForEach;
   const [values, setValues] = useState<Values>(() => initial(params));
   const [jobId, setJobId] = useState<string | null>(null);
+  const [trialIds, setTrialIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [doneIds, setDoneIds] = useState<string[]>([]);
   const busy = submitting || (jobId !== null && !doneIds.includes(jobId));
   const entries = Object.entries(params);
+
+  // Params added by an edit get their defaults; values already typed are kept.
+  const paramKey = JSON.stringify(params);
+  useEffect(() => {
+    setValues((v) => {
+      const next = initial(params);
+      for (const k of Object.keys(next)) if (k in v) next[k] = v[k];
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramKey]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -144,13 +164,15 @@ export function RunPanel({ name, params, forEachIds }: { name: string; params: R
       const res = await fetch(`/api/workflows/${encodeURIComponent(name)}/runs`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ params: toPayload(params, values) }),
+        body: JSON.stringify({ params: toPayload(params, values), ...(edited && { workflow: edited }) }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body?.error?.message ?? `Could not start the run (${res.status}).`);
+        const errors: string[] = body?.error?.errors ?? [];
+        setError([body?.error?.message ?? `Could not start the run (${res.status}).`, ...errors].join(" "));
         return;
       }
+      if (edited) setTrialIds((t) => [...t, body.jobId]);
       setJobId(body.jobId);
     } catch {
       setError("Could not reach the server.");
@@ -162,6 +184,19 @@ export function RunPanel({ name, params, forEachIds }: { name: string; params: R
   return (
     <section className="panel" aria-labelledby="run">
       <h2 id="run">Run</h2>
+      {copy?.dirty && (
+        <div className="run-edited" role="status">
+          {useSaved ? (
+            <p className="small">Running the saved v{copy.saved.version}. <button type="button" className="link-button" onClick={() => setUseSaved(false)}>Run my unsaved changes instead</button></p>
+          ) : (
+            <p className="small">
+              <strong>Running your unsaved changes</strong> ({[...copy.diff.steps.added, ...copy.diff.steps.changed.map((c) => c.id)].join(", ") || "edited"}).
+              {" "}Test runs aren&apos;t saved to run history; save to keep the changes.{" "}
+              <button type="button" className="link-button" onClick={() => setUseSaved(true)}>Run saved v{copy.saved.version} instead</button>
+            </p>
+          )}
+        </div>
+      )}
       <form onSubmit={submit}>
         {entries.length === 0 && <p className="muted">This workflow takes no parameters.</p>}
         {entries.map(([k, p]) => {
@@ -191,7 +226,7 @@ export function RunPanel({ name, params, forEachIds }: { name: string; params: R
             </div>
           );
         })}
-        <button type="submit" className="primary" disabled={busy}>{busy ? "Running…" : "Run"}</button>
+        <button type="submit" className="primary" disabled={busy}>{busy ? "Running…" : edited ? "Run unsaved changes" : "Run"}</button>
         {error && <p className="error-text" role="alert">{error}</p>}
       </form>
       {jobId && (
@@ -203,6 +238,7 @@ export function RunPanel({ name, params, forEachIds }: { name: string; params: R
             setDoneIds((d) => (d.includes(jobId) ? d : [...d, jobId]));
             router.refresh();
           }}
+          trial={trialIds.includes(jobId)}
         />
       )}
     </section>

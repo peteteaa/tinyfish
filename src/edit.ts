@@ -6,7 +6,7 @@ import { z } from "zod";
 import { WORKFLOW_FORMAT } from "./compile.js";
 import { log } from "./env.js";
 import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
-import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
+import { parameterizeInput, validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { diffWorkflows, hasChanges } from "./diff.js";
 import type { WorkflowDiff } from "./store/types.js";
 
@@ -57,8 +57,13 @@ export async function editWorkflow(
   history: EditTurn[] = [],
   opts: EditOptions = {},
 ): Promise<EditResult> {
-  const base = validateWorkflow(current);
-  if (!base.ok) throw new Error(`The current workflow is invalid:\n- ${base.errors.join("\n- ")}`);
+  // Only the shape must be right. Saved workflows can predate newer rules (e.g. unused params); editing is how
+  // they get fixed, so their problems go to Gemini to fix along with the request instead of blocking the edit.
+  const shape = WorkflowSchema.safeParse(current);
+  if (!shape.success) throw new Error(`The current workflow is malformed:\n- ${shape.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n- ")}`);
+  const base = { workflow: shape.data };
+  const check = validateWorkflow(current);
+  const problems = check.ok ? [] : check.errors;
   const { version, source, ...editable } = base.workflow;
 
   const earlier = history
@@ -70,6 +75,9 @@ export async function editWorkflow(
     `<current_workflow>\n${JSON.stringify(editable, null, 2)}\n</current_workflow>`,
     source?.goal ? `<original_goal>\n${source.goal}\n</original_goal>` : "",
     earlier ? `<earlier_conversation>\n${earlier}\n</earlier_conversation>` : "",
+    problems.length
+      ? `<current_problems>\nThe current workflow breaks these rules; fix them too:\n- ${problems.join("\n- ")}\n</current_problems>`
+      : "",
     opts.context ?? "",
     `<request>\n${instruction}\n</request>`,
   ]
@@ -89,7 +97,7 @@ export async function editWorkflow(
     try {
       const parsed = JSON.parse(textOf(content)) as { reply?: unknown; workflow?: unknown };
       const draft = parsed.workflow && typeof parsed.workflow === "object" ? { ...parsed.workflow, name: current.name } : parsed.workflow;
-      const result = validateWorkflow(draft);
+      const result = validateWorkflow(parameterizeInput(draft));
       const extra = result.ok ? (opts.validate?.(result.workflow) ?? []) : [];
       if (result.ok && extra.length === 0) {
         const workflow: Workflow = { ...result.workflow, ...(version !== undefined && { version }), ...(source && { source }) };

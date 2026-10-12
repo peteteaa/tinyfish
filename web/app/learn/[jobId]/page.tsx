@@ -43,7 +43,9 @@ export default function LearnPage({ params }: { params: Promise<{ jobId: string 
     <main className={`column${s.draft ? " wide" : ""}`}>
       <p className="small"><Link href="/">Back to saved workflows</Link></p>
       <h1>{s.goal || "Learning a workflow"}</h1>
-      <p className="muted" role="status" aria-live="polite">{working && status === "connecting" ? "Connecting…" : statusLine}</p>
+      <p className="muted" role="status" aria-live="polite">{working && status === "connecting" ? "Connecting…" : statusLine}
+        {working && s.notice && <span className="status status-running"> {s.notice}</span>}
+      </p>
 
       {s.error && (
         <div className="panel" role="alert">

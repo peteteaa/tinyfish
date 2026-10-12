@@ -1,10 +1,13 @@
+import { after } from "next/server";
 import type { EditTurn } from "@core/edit.js";
 import { startRepairJob } from "@core/jobs.js";
-import { validateWorkflow } from "@core/schema.js";
+import { WorkflowSchema } from "@core/schema.js";
 import { getRun, getWorkflow } from "@core/store.js";
 import { apiError, readJson } from "../../../lib/api";
 
 export const runtime = "nodejs";
+/** Seconds a job may run after the response (Vercel; the platform caps this per plan). */
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 /**
@@ -20,14 +23,14 @@ export async function POST(request: Request) {
   const runId = typeof body?.run_id === "string" ? body.run_id : "";
   const step = typeof body?.step === "string" ? body.step : "";
   if (!runId || !step) return apiError(400, "missing_fields", "Send the run_id and the step to repair.");
-  const run = getRun(runId);
+  const run = await getRun(runId);
   if (!run) return apiError(404, "run_not_found", "That run doesn't exist.");
 
-  let workflow = getWorkflow(run.workflow);
+  let workflow = await getWorkflow(run.workflow);
   if (body?.workflow !== undefined) {
-    const check = validateWorkflow(body.workflow);
-    if (!check.ok) return apiError(400, "invalid_workflow", "The workflow being repaired has errors.", { errors: check.errors });
-    workflow = check.workflow;
+    const check = WorkflowSchema.safeParse(body.workflow);
+    if (!check.success) return apiError(400, "invalid_workflow", "The workflow being repaired is malformed.", { errors: check.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`) });
+    workflow = check.data;
   }
   if (!workflow) return apiError(404, "workflow_not_found", `There's no saved workflow named "${run.workflow}".`);
   if (workflow.name !== run.workflow) return apiError(400, "wrong_workflow", `That run belongs to "${run.workflow}", not "${workflow.name}".`);
@@ -42,5 +45,7 @@ export async function POST(request: Request) {
   if (!record) return apiError(400, "unknown_step", `Run ${run.run_id} has no step "${step}".`);
   if (record.status === "ok") return apiError(400, "nothing_to_repair", `Step "${step}" passed in that run; there's nothing to repair.`);
   const job = startRepairJob(workflow, run, step, history);
+  // On serverless hosts the function would stop once the response is sent; after() keeps the job running.
+  after(() => job.done);
   return Response.json({ jobId: job.id }, { status: 202 });
 }

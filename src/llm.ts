@@ -3,11 +3,21 @@
 
 import { GoogleGenAI, type Content, type GenerateContentResponse } from "@google/genai";
 import { log, requireEnv } from "./env.js";
+import { notice } from "./progress.js";
 
-/** Explore and compile. */
+// Calls fall back down WM_FALLBACK_MODELS when a model's quota is used up, it's overloaded, or it's been retired.
+// Each model has its own free-tier quota, so pointing WM_MODEL and WM_FAST_MODEL at different models spreads the load.
+// (Checked 2026-10-11: the 2.5 models 404 for new keys; Pro models hit free-tier token caps almost at once.)
+
+/** Explore, compile, edit and repair. */
 export const MODEL = process.env.WM_MODEL ?? "gemini-3.5-flash-lite";
 /** Per-item work such as extract steps, where cost and latency matter more. */
 export const FAST_MODEL = process.env.WM_FAST_MODEL ?? "gemini-3.5-flash-lite";
+/** Tried in order after the requested model. */
+export const FALLBACK_MODELS = (process.env.WM_FALLBACK_MODELS ?? "gemini-3.5-flash,gemini-3.6-flash,gemini-3-flash-preview,gemini-3.1-flash-lite-preview")
+  .split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
 
 let client: GoogleGenAI | undefined;
 export function gemini(): GoogleGenAI {
@@ -26,26 +36,93 @@ export function isTransientGeminiError(err: unknown): boolean {
   return /\b(429|500|502|503|504)\b|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded|ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg);
 }
 
-/** Server-suggested wait ("retryDelay":"40s" / "retry in 40.7s"), else exponential backoff. */
-function retryDelayMs(err: unknown, attempt: number): number {
+/** The server's suggested wait in ms ("retryDelay":"40s" / "retry in 40.7s"), if it gave one. */
+function suggestedDelayMs(err: unknown): number | undefined {
   const msg = err instanceof Error ? err.message : String(err);
   const m = msg.match(/retryDelay"?\s*:\s*"(\d+(?:\.\d+)?)s"|retry in (\d+(?:\.\d+)?)s/i);
-  const suggested = m ? Number(m[1] ?? m[2]) * 1000 + 500 : 2_000 * 2 ** attempt;
-  return Math.min(suggested, MAX_WAIT_MS);
+  return m ? Number(m[1] ?? m[2]) * 1000 + 500 : undefined;
 }
 
-/** generateContent with retries on rate limits and transient server errors. Every Gemini call goes through here. */
-export async function generate(params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]): Promise<GenerateContentResponse> {
+/**
+ * A quota that won't come back within MAX_WAIT_MS (the free tier's daily request limit, or a long suggested wait).
+ * Waiting it out would stall every call for minutes, so fail at once with what to do instead. The message keeps
+ * "429" so isTransientGeminiError still treats it as not the workflow's fault (repair won't try to "fix" it).
+ */
+export function quotaExhausted(err: unknown): Error | undefined {
+  const msg = err instanceof Error ? err.message : String(err);
+  if ((err as { status?: number } | null)?.status !== 429 && !/\b429\b|RESOURCE_EXHAUSTED/.test(msg)) return undefined;
+  const wait = suggestedDelayMs(err);
+  const daily = /PerDay/i.test(msg);
+  if (!daily && (wait === undefined || wait <= MAX_WAIT_MS)) return undefined;
+  const limit = msg.match(/limit: (\d+), model: ([\w.-]+)/);
+  const resets = wait ? ` It resets in about ${Math.max(1, Math.round(wait / 60_000))} min.` : "";
+  return new Error(
+    `Gemini quota used up (429${daily ? ", daily limit" : ""}${limit ? `: ${limit[1]} requests for ${limit[2]}` : ""}).${resets} ` +
+      "Wait for it to reset, use a GEMINI_API_KEY with billing enabled, or set WM_MODEL / WM_FAST_MODEL to a model that still has quota.",
+  );
+}
+
+const OVERLOAD_RETRIES = 2;
+
+/** Overloaded (503/UNAVAILABLE) or retired/unknown (404): another model may well answer. */
+function modelUnavailable(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status;
+  const msg = err instanceof Error ? err.message : String(err);
+  return status === 503 || status === 404 || /UNAVAILABLE|high demand|overloaded|no longer available|NOT_FOUND/i.test(msg);
+}
+
+/** One model: retries short rate limits and brief overloads; throws the raw error otherwise. */
+async function generateOnce(params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]): Promise<GenerateContentResponse> {
   for (let attempt = 0; ; attempt++) {
     try {
       return await gemini().models.generateContent(params);
     } catch (err) {
-      if (attempt >= MAX_RETRIES || !isTransientGeminiError(err)) throw err;
-      const wait = retryDelayMs(err, attempt);
-      log(`  gemini: ${(err as { status?: number }).status ?? "transient error"}, retrying in ${Math.round(wait / 1000)}s`);
+      if (quotaExhausted(err)) throw err;
+      const overloaded = modelUnavailable(err);
+      if (!isTransientGeminiError(err) && !overloaded) throw err;
+      if (attempt >= (overloaded ? OVERLOAD_RETRIES : MAX_RETRIES) || (err as { status?: number }).status === 404) throw err;
+      const wait = Math.min(suggestedDelayMs(err) ?? 2_000 * 2 ** attempt, MAX_WAIT_MS);
+      const status = (err as { status?: number }).status;
+      log(`  gemini ${params.model}: ${status ?? "transient error"}, retrying in ${Math.round(wait / 1000)}s`);
+      notice(`Gemini (${params.model}) is ${status === 429 ? "rate limited" : "busy"}; retrying in ${Math.round(wait / 1000)}s.`);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
+}
+
+/** Models known to be out of quota or down, until when. Skipped without a request until then. */
+const unavailableUntil = new Map<string, number>();
+
+/**
+ * generateContent with retries, falling back to the next model in FALLBACK_MODELS when the requested one has used up
+ * its quota, is overloaded or is gone. Every Gemini call goes through here.
+ */
+export async function generate(params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]): Promise<GenerateContentResponse> {
+  const chain = [params.model, ...FALLBACK_MODELS.filter((m) => m !== params.model)];
+  let firstProblem: Error | undefined;
+  for (const model of chain) {
+    if ((unavailableUntil.get(model) ?? 0) > Date.now()) continue;
+    try {
+      const response = await generateOnce({ ...params, model });
+      if (model !== params.model) log(`  gemini: ${params.model} unavailable, answered by ${model}`);
+      return response;
+    } catch (err) {
+      const exhausted = quotaExhausted(err);
+      if (!exhausted && !modelUnavailable(err)) throw err;
+      firstProblem ??= exhausted ?? (err instanceof Error ? err : new Error(String(err)));
+      // Quota: until it resets. Overload or 404: try it again in a few minutes.
+      unavailableUntil.set(model, Date.now() + (exhausted ? (suggestedDelayMs(err) ?? 60 * 60_000) : 5 * 60_000));
+      log(`  gemini: ${model} ${exhausted ? "is out of quota" : "is unavailable"}; trying the next model`);
+      notice(`Gemini ${model} is ${exhausted ? "out of quota for today" : "unavailable"}; switching to another model.`);
+    }
+  }
+  throw firstProblem ?? new Error(`Every Gemini model (${chain.join(", ")}) is out of quota or unavailable right now. Try again later.`);
+}
+
+/** For tests: forget which models were marked unavailable, and optionally swap in a fake client. */
+export function resetModelAvailability(fake?: GoogleGenAI) {
+  unavailableUntil.clear();
+  if (fake) client = fake;
 }
 
 /** The candidate's content, or a readable error when the model stopped without one (safety, max tokens, ...). */
@@ -78,36 +155,54 @@ export function geminiSchema(schema: unknown): unknown {
   );
 }
 
+/** Enough for large extractions; a model stuck repeating itself stops here in seconds instead of minutes. */
+const EXTRACT_MAX_OUTPUT_TOKENS = 8_192;
+
+const EXTRACT_SYSTEM =
+  "You extract structured data from web page content. Use only facts present in the content. " +
+  "If a field is not present in the content, use null or an empty list. Never invent or paraphrase values; " +
+  "copy text as it appears, keeping each string value short (a name, a price, a phrase), never commentary.";
+
 /** The `extract` step: pull structured data out of fetched text. */
 export async function extract(args: {
   input: string;
   instruction: string;
   schema: Record<string, unknown>;
-}): Promise<{ value: unknown; usage: { input: number; output: number } }> {
-  const response = await generate({
-    model: FAST_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: `<instruction>\n${args.instruction}\n</instruction>\n\n<content>\n${args.input}\n</content>` }],
+}): Promise<{ value: unknown; usage: { input: number; output: number }; model: string }> {
+  // Small models sometimes derail on long pages (runaway output, broken JSON). Try once more on the next model.
+  const models = [FAST_MODEL, ...FALLBACK_MODELS.filter((m) => m !== FAST_MODEL)].slice(0, 2);
+  let lastError: unknown;
+  for (const model of models) {
+    const response = await generate({
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `<instruction>\n${args.instruction}\n</instruction>\n\n<content>\n${args.input}\n</content>` }],
+        },
+      ],
+      config: {
+        systemInstruction: EXTRACT_SYSTEM,
+        temperature: 0,
+        maxOutputTokens: EXTRACT_MAX_OUTPUT_TOKENS,
+        responseMimeType: "application/json",
+        responseJsonSchema: geminiSchema(args.schema),
       },
-    ],
-    config: {
-      systemInstruction:
-        "You extract structured data from web page content. Use only facts present in the content. " +
-        "If a field is not present in the content, use null or an empty list. Never invent or paraphrase values; " +
-        "copy text as it appears.",
-      responseMimeType: "application/json",
-      responseJsonSchema: geminiSchema(args.schema),
-    },
-  });
-  const text = textOf(candidateContent(response));
-  if (!text) throw new Error("Extraction returned no text.");
-  return {
-    value: JSON.parse(text),
-    usage: {
-      input: response.usageMetadata?.promptTokenCount ?? 0,
-      output: response.usageMetadata?.candidatesTokenCount ?? 0,
-    },
-  };
+    });
+    try {
+      const text = textOf(candidateContent(response));
+      if (!text) throw new Error("Extraction returned no text.");
+      return {
+        value: JSON.parse(text),
+        usage: { input: response.usageMetadata?.promptTokenCount ?? 0, output: response.usageMetadata?.candidatesTokenCount ?? 0 },
+        model: response.modelVersion ?? model,
+      };
+    } catch (err) {
+      lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
+      log(`  extract: ${model} failed (${message.slice(0, 120)})`);
+      if (model !== models.at(-1)) notice(`Extraction on ${model} failed (${message.slice(0, 80)}); retrying on ${models.at(-1)}.`);
+    }
+  }
+  throw lastError;
 }

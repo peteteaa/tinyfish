@@ -61,7 +61,7 @@ test(`learn (live TinyFish + Gemini, ${MODEL}): explore, compile, save, rerun`, 
   assert.ok(trace.answer !== undefined, "explorer never called submit_answer");
   assert.equal(workflow.name, "example_heading");
   assert.equal(workflow.version, 1);
-  assert.ok(getWorkflow("example_heading"), "workflow was not saved");
+  assert.ok(await getWorkflow("example_heading"), "workflow was not saved");
 
   const run = await runWorkflow("example_heading", {});
   assert.equal(run.status, "ok", run.error ?? JSON.stringify(run.steps.map((s) => [s.id, s.status, s.error])));
@@ -99,11 +99,11 @@ test("learn job (live): streams trace rows, answer and a draft with provenance, 
     assert.ok(Array.isArray(draft.derived_from[step.id]), `no derived_from for ${step.id}`);
     for (const i of draft.derived_from[step.id]) assert.ok(i >= 0 && i < traces.length);
   }
-  assert.equal(getWorkflow("example_heading_job"), undefined, "a draft must not be saved until the user saves it");
+  assert.equal(await getWorkflow("example_heading_job"), undefined, "a draft must not be saved until the user saves it");
 });
 
 test("run job (live): streams every step and finishes with a saved run", { skip: noKeys, timeout: 180_000 }, async () => {
-  const wf = getWorkflow("competitor_pricing")!;
+  const wf = (await getWorkflow("competitor_pricing"))!;
   const job = startRunJob(wf, { competitors: ["firecrawl.dev/pricing"] });
   const events = await new Promise<{ kind: string; [k: string]: any }[]>((resolve) => {
     const seen: any[] = [];
@@ -119,11 +119,11 @@ test("run job (live): streams every step and finishes with a saved run", { skip:
   const done = events.find((e) => e.kind === "run_done")!;
   assert.equal(done.run.status, "ok");
   const { getRun } = await import("../src/store.js");
-  assert.ok(getRun(done.run.run_id), "run record was not saved");
+  assert.ok(await getRun(done.run.run_id), "run record was not saved");
 });
 
 test(`edit (live Gemini, ${MODEL}): applies a plain-English change and keeps the name`, { skip: noGemini, timeout: 120_000 }, async () => {
-  const wf = getWorkflow("competitor_pricing");
+  const wf = await getWorkflow("competitor_pricing");
   assert.ok(wf, "seed workflow missing");
   const result = await editWorkflow(wf, "Add an optional string param named currency, default \"USD\", and mention it in the extract instruction.");
   assert.equal(result.changed, true, result.reply);

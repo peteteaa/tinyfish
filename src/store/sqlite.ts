@@ -2,9 +2,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
+
+// Loaded on first use so environments that only use Postgres (Vercel) never load node:sqlite.
+const sqlite = () => process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
 import type { Workflow } from "../schema.js";
-import type { Backend, RunRecord, VersionInfo, VersionSource } from "./types.js";
+import type { Backend, JobInfo, RunRecord, VersionInfo, VersionSource } from "./types.js";
 
 const MIGRATIONS: string[] = [
   // 1
@@ -22,9 +25,12 @@ const MIGRATIONS: string[] = [
    );`,
   // 2: names deleted by the user, so seeding doesn't recreate them
   `CREATE TABLE deleted_workflows (name TEXT PRIMARY KEY, deleted_at TEXT NOT NULL);`,
+  // 3: jobs and their events, so any server instance can stream a job's progress
+  `CREATE TABLE jobs (id TEXT PRIMARY KEY, type TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL);
+   CREATE TABLE job_events (job_id TEXT NOT NULL, seq INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (job_id, seq));`,
 ];
 
-function migrate(db: DatabaseSync) {
+function migrate(db: DatabaseSyncType) {
   const current = (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
   for (let v = current; v < MIGRATIONS.length; v++) {
     db.exec("BEGIN");
@@ -41,7 +47,7 @@ function migrate(db: DatabaseSync) {
 
 export function sqliteBackend(dataDir: string): Backend {
   fs.mkdirSync(dataDir, { recursive: true });
-  const db = new DatabaseSync(path.join(dataDir, "workflow-memory.db"));
+  const db = new (sqlite().DatabaseSync)(path.join(dataDir, "workflow-memory.db"));
   db.exec("PRAGMA journal_mode=WAL");
   db.exec("PRAGMA busy_timeout=5000");
   migrate(db);
@@ -119,6 +125,23 @@ export function sqliteBackend(dataDir: string): Backend {
     getTrace(id) {
       const row = db.prepare("SELECT trace_json FROM learn_sessions WHERE id = ?").get(id) as { trace_json: string } | undefined;
       return row && JSON.parse(row.trace_json);
+    },
+    createJob(job) {
+      db.prepare("INSERT INTO jobs (id, type, status, created_at) VALUES (?, ?, ?, ?)").run(job.id, job.type, job.status, job.created_at);
+    },
+    setJobStatus(id, status) {
+      db.prepare("UPDATE jobs SET status = ? WHERE id = ?").run(status, id);
+    },
+    getJobInfo(id) {
+      return db.prepare("SELECT id, type, status, created_at FROM jobs WHERE id = ?").get(id) as JobInfo | undefined;
+    },
+    appendJobEvent(id, seq, event) {
+      db.prepare("INSERT OR REPLACE INTO job_events (job_id, seq, json) VALUES (?, ?, ?)").run(id, seq, JSON.stringify(event));
+    },
+    jobEvents(id, afterSeq) {
+      return (
+        db.prepare("SELECT seq, json FROM job_events WHERE job_id = ? AND seq > ? ORDER BY seq").all(id, afterSeq) as { seq: number; json: string }[]
+      ).map((r) => ({ seq: r.seq, event: JSON.parse(r.json) }));
     },
   };
 }

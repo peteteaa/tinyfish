@@ -52,11 +52,11 @@ test("validateWorkflow: catches bad references", () => {
   assert.match(errors, /\{\{item\}\} used outside a forEach/);
 });
 
-test("seed workflow is valid and seeded into the store", () => {
+test("seed workflow is valid and seeded into the store", async () => {
   const seed = JSON.parse(fs.readFileSync(new URL("../seeds/competitor_pricing.json", import.meta.url), "utf8"));
   const r = validateWorkflow(seed);
   assert.ok(r.ok, r.ok ? "" : r.errors.join("\n"));
-  assert.ok(listWorkflows().some((w) => w.name === "competitor_pricing" && w.latest === 1));
+  assert.ok((await listWorkflows()).some((w) => w.name === "competitor_pricing" && w.latest === 1));
 });
 
 test("checks", () => {
@@ -67,8 +67,8 @@ test("checks", () => {
   assert.equal(runCheck({ type: "regex", path: "price", pattern: "\\$\\d+" }, { price: "$20/mo" }).passed, true);
 });
 
-test("params: coercion, defaults, required, unknown", () => {
-  const wf = getWorkflow("competitor_pricing")!;
+test("params: coercion, defaults, required, unknown", async () => {
+  const wf = (await getWorkflow("competitor_pricing"))!;
   assert.deepEqual(resolveParams(wf, { competitors: "a.com/pricing, b.com/pricing" }), {
     competitors: ["a.com/pricing", "b.com/pricing"],
   });
@@ -95,7 +95,7 @@ test(
   "executor (live TinyFish): runs steps, records checks, history and {{previous}}",
   { skip: !process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set" },
   async () => {
-    saveWorkflow({
+    await saveWorkflow({
       name: "fetch_only",
       description: "test",
       params: { urls: { type: "string[]", description: "urls", default: ["example.com"] } },
@@ -115,6 +115,6 @@ test(
     const second = await runWorkflow("fetch_only", {});
     assert.equal(second.status, "ok");
     assert.deepEqual((second.output as any).before, (first.output as any).titles); // previous = last successful run
-    assert.equal(listRuns("fetch_only").length, 2);
+    assert.equal((await listRuns("fetch_only")).length, 2);
   },
 );

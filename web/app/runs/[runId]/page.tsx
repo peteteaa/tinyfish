@@ -11,7 +11,7 @@ const STEP_WORD: Record<string, string> = { ok: "Passed", check_failed: "Check f
 
 export default async function RunPage({ params }: { params: Promise<{ runId: string }> }) {
   const { runId } = await params;
-  const run = getRun(runId);
+  const run = await getRun(runId);
   if (!run) notFound();
   const started = new Date(run.started_at).toISOString().slice(0, 19).replace("T", " ");
 

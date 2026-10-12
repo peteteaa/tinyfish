@@ -7,7 +7,7 @@ import { z } from "zod";
 import { log, SEEDS_DIR } from "./env.js";
 import { explore, returnedContent, type Trace } from "./explore.js";
 import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
-import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
+import { parameterizeInput, validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { listWorkflows, saveWorkflow } from "./store.js";
 
 const SUMMARY_TEXT = 1_500; // chars of each tool output shown to the compiler; it needs shapes, not content
@@ -40,7 +40,15 @@ A string that is exactly one {{...}} keeps the raw value (arrays/objects); other
 
 Checks (run on each step output, or each item's output under forEach): not_empty, min_items {value}, required_keys {keys},
 regex {pattern}; each takes an optional dotted path. A failed check flags the run for repair, so write checks that catch
-real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.`;
+real breakage (empty extraction, missing prices), not ones that fail on legitimate variation.
+
+Grounding: every fact in the output must come from a search, fetch or agent step. An extract step only reads its
+"input"; it can't look anything up. So if the output covers or compares against another subject (the user's own
+company or product, a second competitor, a benchmark page), add a search/fetch step for that subject and put its text
+in the extract's input. A param that only appears inside an extract "instruction" gives Gemini a name, not data. Every
+declared param must be used by some step or the output. Never write a param's example value into a step: use
+{{params.x}} in instructions and queries, and generic output_schema property names ("comparison", not
+"comparison_with_gitlab"), or every run reports the example instead of the input.`;
 
 const SYSTEM = `You compile a recorded web-task trace into a reusable workflow: a JSON definition that a deterministic
 runner executes without an LLM in the loop (except inside "extract" steps). Reruns must be fast and cheap.
@@ -94,7 +102,7 @@ export async function compileDetailed(
     );
   }
   const example = fs.readFileSync(path.join(SEEDS_DIR, "competitor_pricing.json"), "utf8");
-  const existing = listWorkflows().map((w) => w.name);
+  const existing = (await listWorkflows()).map((w) => w.name);
   const prompt = [
     `<goal>\n${trace.goal}\n</goal>`,
     `<trace>\n${JSON.stringify(summarize(trace.calls.map((c, index) => ({ index, ...c }))), null, 2)}\n</trace>`,
@@ -129,7 +137,7 @@ export async function compileDetailed(
     let errors: string[];
     try {
       const { derived_from, ...draft } = JSON.parse(textOf(content)) as Record<string, unknown>;
-      const result = validateWorkflow(draft);
+      const result = validateWorkflow(parameterizeInput(draft));
       if (result.ok) {
         compiled = result.workflow;
         derivedFrom = parseDerivedFrom(derived_from, compiled, trace.calls.length);
@@ -156,7 +164,7 @@ export async function learn(goal: string, opts: { name?: string } = {}) {
   log("Exploring...");
   const trace = await explore(goal);
   log(`Explored with ${trace.calls.length} tool calls (trace ${trace.id}). Compiling...`);
-  const workflow = saveWorkflow(await compile(trace, opts), "learned");
+  const workflow = await saveWorkflow(await compile(trace, opts), "learned");
   log(`Saved ${workflow.name} v${workflow.version}.`);
   return { trace, workflow };
 }

@@ -3,7 +3,7 @@
 
 import { extract } from "./llm.js";
 import { log } from "./env.js";
-import type { Check, Param, Step, Workflow } from "./schema.js";
+import { parameterize, type Check, type Param, type Step, type Workflow } from "./schema.js";
 import { getWorkflow, lastSuccessfulRun, newId, saveRun, type CheckResult, type RunRecord, type StepRecord } from "./store.js";
 import { getPath, resolve, type TemplateContext } from "./template.js";
 import { fetchPages, runAgent, search } from "./tinyfish.js";
@@ -151,13 +151,14 @@ async function runOnce(step: Step, ctx: TemplateContext, meta: Record<string, un
       const input = resolve<unknown>(step.input, ctx);
       const text = typeof input === "string" ? input : JSON.stringify(input, null, 2);
       if (!text.trim()) throw new Error("extract step input is empty");
-      const { value, usage } = await extract({
+      const { value, usage, model } = await extract({
         input: text,
         instruction: resolve<string>(step.instruction, ctx),
         schema: step.output_schema,
       });
       const tokens = (meta.tokens as { input: number; output: number }) ?? { input: 0, output: 0 };
       meta.tokens = { input: tokens.input + usage.input, output: tokens.output + usage.output };
+      meta.models = [...new Set([...((meta.models as string[]) ?? []), model])];
       return value;
     }
   }
@@ -216,15 +217,17 @@ export async function runStep(step: Step, ctx: TemplateContext): Promise<StepRec
 // ---------- workflow ----------
 
 export async function runWorkflow(name: string, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
-  const wf = getWorkflow(name, opts.version);
+  const wf = await getWorkflow(name, opts.version);
   if (!wf) throw new Error(`No workflow named "${name}"${opts.version ? ` v${opts.version}` : ""}`);
   return runWorkflowDef(wf, input, opts);
 }
 
 /** Runs a workflow definition directly (used by `learn --run` before/after saving). */
-export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
+export async function runWorkflowDef(saved: Workflow, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
+  // Workflows saved before parameterize() existed may still name their example inputs literally; runs follow params.
+  const wf = parameterize(saved);
   const params = resolveParams(wf, input);
-  const prev = lastSuccessfulRun(wf.name);
+  const prev = await lastSuccessfulRun(wf.name);
   const ctx: TemplateContext = {
     params,
     steps: {},
@@ -262,6 +265,13 @@ export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown
   if (run.status !== "error") {
     try {
       run.output = wf.output !== undefined ? resolve(wf.output, ctx) : ctx.steps[wf.steps.at(-1)!.id];
+      // Steps produced data but the output template picked none of it: a wrong path, not a passing run.
+      const empty = (v: unknown): boolean =>
+        v === undefined || v === null || v === "" || (typeof v === "object" && !Array.isArray(v) && Object.values(v).every(empty));
+      if (empty(run.output) && run.steps.some((s) => s.output !== undefined && s.output !== null)) {
+        run.status = "error";
+        run.error = `output: ${JSON.stringify(wf.output)} resolved to nothing although the steps produced data; check the template path`;
+      }
     } catch (err) {
       run.status = "error";
       run.error = `output: ${err instanceof Error ? err.message : String(err)}`;
@@ -270,6 +280,6 @@ export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown
 
   run.finished_at = new Date().toISOString();
   run.duration_ms = Date.now() - started;
-  if (wf.version) saveRun(run);
+  if (wf.version) await saveRun(run);
   return run;
 }
