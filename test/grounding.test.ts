@@ -98,3 +98,69 @@ test("validateWorkflow: a declared param no step uses is rejected", () => {
   assert.equal(r.ok, false);
   if (!r.ok) assert.ok(r.errors.some((e) => /params\.extra: declared but no step or output uses it/.test(e)), r.errors.join("\n"));
 });
+
+test("validateWorkflow: a param's example value baked into a step is rejected", () => {
+  const wf = (instruction: string, prop: string) => ({
+    name: "research_signup_company",
+    description: "research a signup and compare",
+    params: {
+      signup_company: { type: "string", description: "who signed up", default: "github.com" },
+      comparison_company: { type: "string", description: "compare against", default: "GitLab" },
+    },
+    steps: [
+      { id: "search_company", type: "search", query: "{{params.signup_company}} vs {{params.comparison_company}}" },
+      { id: "analysis", type: "extract", input: "{{steps.search_company.results}}", instruction, output_schema: { type: "object", properties: { [prop]: { type: "string" } } } },
+    ],
+  });
+  const good = validateWorkflow(wf("Compare {{params.signup_company}} against {{params.comparison_company}}.", "comparison"));
+  assert.equal(good.ok, true, good.ok ? "" : good.errors.join("\n"));
+  // The production bug: "(e.g. GitHub)" in the instruction and a schema property named after the example.
+  const bad = validateWorkflow(wf("Research the signup company (e.g. GitHub) and compare it against GitLab.", "comparison_with_gitlab"));
+  assert.equal(bad.ok, false);
+  if (!bad.ok) {
+    assert.ok(bad.errors.some((e) => /instruction: contains "github".*params\.signup_company/i.test(e)), bad.errors.join("\n"));
+    assert.ok(bad.errors.some((e) => /output_schema property "comparison_with_gitlab".*params\.comparison_company/.test(e)), bad.errors.join("\n"));
+  }
+});
+
+test("parameterize: literal example values in step text become {{params.x}}; templates, URLs and identifiers stay", async () => {
+  const { parameterize } = await import("../src/schema.js");
+  const wf = {
+    params: {
+      signup_company: { type: "string" as const, description: "who signed up", default: "github.com" },
+      comparison_company: { type: "string" as const, description: "compare against", default: "GitLab" },
+    },
+    steps: [
+      { id: "search_company", type: "search" as const, query: "github.com overview vs GitLab" },
+      { id: "fetch_about", type: "fetch" as const, urls: ["https://github.com/about"] },
+      {
+        id: "analysis", type: "extract" as const, input: "{{params.signup_company}}: {{steps.search_company.results}}",
+        instruction: "Research the signup company (e.g. GitHub) against GitLab. Fill comparison_with_gitlab.",
+        output_schema: { type: "object" },
+      },
+    ],
+  };
+  const out = parameterize(wf);
+  const step = (id: string) => out.steps.find((s) => s.id === id) as unknown as Record<string, unknown>;
+  assert.equal(step("search_company").query, "{{params.signup_company}} overview vs {{params.comparison_company}}");
+  assert.equal(step("analysis").instruction, "Research the signup company (e.g. {{params.signup_company}}) against {{params.comparison_company}}. Fill comparison_with_gitlab.");
+  assert.equal(step("analysis").input, "{{params.signup_company}}: {{steps.search_company.results}}");
+  assert.deepEqual(step("fetch_about").urls, ["https://github.com/about"]);
+  assert.equal(parameterize(out), out, "already parameterized: returned as-is");
+});
+
+test("saveWorkflow: saving parameterizes literal example values", async () => {
+  const { saveWorkflow } = await import("../src/store.js");
+  const saved = await saveWorkflow({
+    name: "follows_params",
+    description: "x",
+    params: { company: { type: "string", description: "company", default: "Stripe" } },
+    steps: [
+      { id: "search_company", type: "search", query: "Stripe funding" },
+      { id: "brief", type: "extract", input: "{{steps.search_company.results}}", instruction: "Summarize {{params.company}} (e.g. Stripe).", output_schema: { type: "object", properties: { brief: { type: "string" } } } },
+    ],
+  });
+  const steps = saved.steps as unknown as Record<string, unknown>[];
+  assert.equal(steps[0].query, "{{params.company}} funding");
+  assert.equal(steps[1].instruction, "Summarize {{params.company}} (e.g. {{params.company}}).");
+});

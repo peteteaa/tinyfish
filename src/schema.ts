@@ -195,10 +195,111 @@ export function validateWorkflow(input: unknown): { ok: true; workflow: Workflow
   }
   if (!wf.steps.some((s) => WEB.has(s.type))) errors.push("steps: a workflow needs at least one search, fetch or agent step");
 
+  errors.push(...hardcodedDefaults(wf));
+
   const usedParams = new Set(refsIn([wf.steps, wf.output]).filter((r) => r.startsWith("params.")).map((r) => r.split(".")[1]));
   for (const name of Object.keys(wf.params)) {
     if (!usedParams.has(name)) errors.push(`params.${name}: declared but no step or output uses it; use it or remove it`);
   }
 
   return errors.length ? { ok: false, errors } : { ok: true, workflow: wf };
+}
+
+// ---------- example values (param defaults) written literally into steps ----------
+
+/** Step fields that hold text a param can appear in. URLs are left alone: a literal URL is usually intentional. */
+const TEXT_FIELDS = ["query", "purpose", "goal", "instruction", "input"] as const;
+const TEMPLATE = /(\{\{[^}]*\}\})/;
+
+/** Each param's string defaults as matchable needles, longest first ("github.com" also yields "github"). */
+function exampleValues(wf: Pick<Workflow, "params">): { param: string; needle: string }[] {
+  const values: { param: string; needle: string }[] = [];
+  for (const [k, p] of Object.entries(wf.params)) {
+    for (const d of Array.isArray(p.default) ? p.default : [p.default]) {
+      if (typeof d !== "string") continue;
+      const v = d.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
+      const stem = v.includes(".") && !/[\s/]/.test(v) ? v.split(".")[0] : undefined;
+      for (const n of [v, stem]) if (n && n.length >= 4 && !/^\d+$/.test(n)) values.push({ param: k, needle: n });
+    }
+  }
+  return values.sort((a, b) => b.needle.length - a.needle.length);
+}
+
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Makes steps follow their params: wherever a param's example value (its default) is written literally into a step's
+ * text ("compare it against GitLab", "(e.g. GitHub)"), it becomes {{params.x}}, so a run with other inputs doesn't
+ * mix the example in. Applied when workflows are compiled, edited, saved and run. Existing {{...}} templates and
+ * identifier-like names (comparison_with_gitlab) are left alone; output_schema property names can't be templated,
+ * so hardcodedDefaults() reports those instead.
+ */
+export function parameterize<T extends Pick<Workflow, "params" | "steps">>(wf: T): T {
+  const values = exampleValues(wf);
+  if (!values.length) return wf;
+  const rewrite = (text: string) => {
+    let out = text;
+    for (const { param, needle } of values) {
+      const re = new RegExp(`(^|[^a-z0-9_])${esc(needle)}(?=$|[^a-z0-9_])`, "gi");
+      out = out
+        .split(TEMPLATE)
+        .map((part) => (TEMPLATE.test(part) ? part : part.replace(re, (_m, pre: string) => `${pre}{{params.${param}}}`)))
+        .join("");
+    }
+    return out;
+  };
+  let changed = false;
+  const steps = wf.steps.map((step) => {
+    const next: Record<string, unknown> = { ...step };
+    for (const f of TEXT_FIELDS) {
+      const v = next[f];
+      if (typeof v === "string") {
+        const r = rewrite(v);
+        if (r !== v) {
+          next[f] = r;
+          changed = true;
+        }
+      }
+    }
+    return next as unknown as Step;
+  });
+  return changed ? { ...wf, steps } : wf;
+}
+
+/** parameterize() for input that may not be a workflow yet (drafts, request bodies); returns it unchanged if not. */
+export function parameterizeInput(input: unknown): unknown {
+  const parsed = WorkflowSchema.safeParse(input);
+  if (!parsed.success) return input;
+  const fixed = parameterize(parsed.data);
+  return fixed === parsed.data ? input : { ...(input as object), steps: fixed.steps };
+}
+
+/**
+ * A param's example value written literally into a step stays fixed whatever the user passes, so runs mix the
+ * example into real results. parameterize() fixes text fields; this reports what it can't fix (output_schema
+ * property names like "comparison_with_gitlab") plus any text it would change, for callers that skip it.
+ */
+export function hardcodedDefaults(wf: Workflow): string[] {
+  const values = exampleValues(wf);
+  if (!values.length) return [];
+  const found = new Set<string>();
+  const check = (where: string, text: string) => {
+    const plain = text.replace(/\{\{[^}]*\}\}/g, " ").replace(/_/g, " ");
+    for (const { param, needle } of values) {
+      if (new RegExp(`(^|[^a-z0-9])${esc(needle)}($|[^a-z0-9])`, "i").test(plain)) {
+        found.add(`${where}: contains "${needle}", the example value (default) of params.${param}; use {{params.${param}}} or a generic word so it follows the input`);
+      }
+    }
+  };
+  const propertyNames = (schema: unknown): string[] => {
+    if (!schema || typeof schema !== "object") return [];
+    const sch = schema as { properties?: Record<string, unknown>; items?: unknown };
+    return [...Object.keys(sch.properties ?? {}), ...Object.values(sch.properties ?? {}).flatMap(propertyNames), ...propertyNames(sch.items)];
+  };
+  for (const step of wf.steps) {
+    const fields = step as unknown as Record<string, unknown>;
+    for (const f of TEXT_FIELDS) if (typeof fields[f] === "string") check(`steps.${step.id}.${f}`, fields[f] as string);
+    for (const key of propertyNames(fields.output_schema)) check(`steps.${step.id}.output_schema property "${key}"`, key);
+  }
+  return [...found];
 }

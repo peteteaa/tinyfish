@@ -3,7 +3,7 @@
 
 import { extract } from "./llm.js";
 import { log } from "./env.js";
-import type { Check, Param, Step, Workflow } from "./schema.js";
+import { parameterize, type Check, type Param, type Step, type Workflow } from "./schema.js";
 import { getWorkflow, lastSuccessfulRun, newId, saveRun, type CheckResult, type RunRecord, type StepRecord } from "./store.js";
 import { getPath, resolve, type TemplateContext } from "./template.js";
 import { fetchPages, runAgent, search } from "./tinyfish.js";
@@ -223,7 +223,9 @@ export async function runWorkflow(name: string, input: Record<string, unknown>, 
 }
 
 /** Runs a workflow definition directly (used by `learn --run` before/after saving). */
-export async function runWorkflowDef(wf: Workflow, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
+export async function runWorkflowDef(saved: Workflow, input: Record<string, unknown>, opts: RunOptions = {}): Promise<RunRecord> {
+  // Workflows saved before parameterize() existed may still name their example inputs literally; runs follow params.
+  const wf = parameterize(saved);
   const params = resolveParams(wf, input);
   const prev = await lastSuccessfulRun(wf.name);
   const ctx: TemplateContext = {

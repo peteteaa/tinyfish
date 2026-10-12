@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { validateWorkflow, type Workflow } from "../schema.js";
+import { parameterizeInput, validateWorkflow, type Workflow } from "../schema.js";
 import { diffWorkflows } from "../diff.js";
 import type { Backend, Store, VersionSource } from "./types.js";
 
@@ -63,7 +63,8 @@ export function makeStore(b: Backend, seedsDir: string): Store {
     },
     async saveWorkflow(input, source: VersionSource = "cli") {
       await ready();
-      const result = validateWorkflow(input);
+      // Every save path (web, CLI, MCP, repair) gets literal example values turned into {{params.x}}.
+      const result = validateWorkflow(parameterizeInput(input));
       if (!result.ok) throw new Error(`Invalid workflow:\n- ${result.errors.join("\n- ")}`);
       return b.writeNext(result.workflow, source);
     },

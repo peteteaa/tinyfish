@@ -6,7 +6,7 @@ import { z } from "zod";
 import { WORKFLOW_FORMAT } from "./compile.js";
 import { log } from "./env.js";
 import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
-import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
+import { parameterizeInput, validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { diffWorkflows, hasChanges } from "./diff.js";
 import type { WorkflowDiff } from "./store/types.js";
 
@@ -97,7 +97,7 @@ export async function editWorkflow(
     try {
       const parsed = JSON.parse(textOf(content)) as { reply?: unknown; workflow?: unknown };
       const draft = parsed.workflow && typeof parsed.workflow === "object" ? { ...parsed.workflow, name: current.name } : parsed.workflow;
-      const result = validateWorkflow(draft);
+      const result = validateWorkflow(parameterizeInput(draft));
       const extra = result.ok ? (opts.validate?.(result.workflow) ?? []) : [];
       if (result.ok && extra.length === 0) {
         const workflow: Workflow = { ...result.workflow, ...(version !== undefined && { version }), ...(source && { source }) };

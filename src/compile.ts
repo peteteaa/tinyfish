@@ -7,7 +7,7 @@ import { z } from "zod";
 import { log, SEEDS_DIR } from "./env.js";
 import { explore, returnedContent, type Trace } from "./explore.js";
 import { candidateContent, generate, geminiSchema, MODEL, textOf } from "./llm.js";
-import { validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
+import { parameterizeInput, validateWorkflow, WorkflowSchema, type Workflow } from "./schema.js";
 import { listWorkflows, saveWorkflow } from "./store.js";
 
 const SUMMARY_TEXT = 1_500; // chars of each tool output shown to the compiler; it needs shapes, not content
@@ -46,7 +46,9 @@ Grounding: every fact in the output must come from a search, fetch or agent step
 "input"; it can't look anything up. So if the output covers or compares against another subject (the user's own
 company or product, a second competitor, a benchmark page), add a search/fetch step for that subject and put its text
 in the extract's input. A param that only appears inside an extract "instruction" gives Gemini a name, not data. Every
-declared param must be used by some step or the output.`;
+declared param must be used by some step or the output. Never write a param's example value into a step: use
+{{params.x}} in instructions and queries, and generic output_schema property names ("comparison", not
+"comparison_with_gitlab"), or every run reports the example instead of the input.`;
 
 const SYSTEM = `You compile a recorded web-task trace into a reusable workflow: a JSON definition that a deterministic
 runner executes without an LLM in the loop (except inside "extract" steps). Reruns must be fast and cheap.
@@ -135,7 +137,7 @@ export async function compileDetailed(
     let errors: string[];
     try {
       const { derived_from, ...draft } = JSON.parse(textOf(content)) as Record<string, unknown>;
-      const result = validateWorkflow(draft);
+      const result = validateWorkflow(parameterizeInput(draft));
       if (result.ok) {
         compiled = result.workflow;
         derivedFrom = parseDerivedFrom(derived_from, compiled, trace.calls.length);
