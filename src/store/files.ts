@@ -5,12 +5,15 @@
 //   <data>/runs/<name>/<run_id>.json        run history
 //   <data>/traces/<trace_id>.json           exploration traces from `learn`
 //   <data>/deleted.json                     names deleted by the user, so seeding doesn't recreate them
-//   <data>/jobs/<job_id>.json               job info; events appended to <data>/jobs/<job_id>.events.jsonl
+//   <data>/jobs/<job_id>.json               job info (with its owner); events appended to <data>/jobs/<job_id>.events.jsonl
+//
+// That layout is the "local" owner's (the CLI's default). Every other owner gets the same layout, minus jobs, under
+// <data>/users/<owner>/.
 
 import fs from "node:fs";
 import path from "node:path";
 import type { Workflow } from "../schema.js";
-import type { Backend, JobInfo, JobEventRow, RunRecord, VersionInfo, VersionSource } from "./types.js";
+import type { Backend, BackendFactory, JobInfo, JobEventRow, RunRecord, VersionInfo, VersionSource } from "./types.js";
 
 function readJson<T>(file: string): T {
   return JSON.parse(fs.readFileSync(file, "utf8")) as T;
@@ -21,12 +24,27 @@ function writeJson(file: string, value: unknown) {
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
 }
 
-export function filesBackend(dataDir: string): Backend {
-  const WF = path.join(dataDir, "workflows");
-  const RUNS = path.join(dataDir, "runs");
-  const TRACES = path.join(dataDir, "traces");
-  const DELETED = path.join(dataDir, "deleted.json");
+export function filesBackend(dataDir: string): BackendFactory {
+  return (owner) => ownerBackend(dataDir, owner);
+}
+
+type StoredJob = JobInfo & { owner?: string };
+
+function ownerBackend(dataDir: string, owner: string): Backend {
+  // Dots are encoded too, so "." and ".." can't name a directory outside users/.
+  const base = owner === "local" ? dataDir : path.join(dataDir, "users", encodeURIComponent(owner).replaceAll(".", "%2E"));
+  const WF = path.join(base, "workflows");
+  const RUNS = path.join(base, "runs");
+  const TRACES = path.join(base, "traces");
+  const DELETED = path.join(base, "deleted.json");
   const JOBS = path.join(dataDir, "jobs");
+  /** This owner's job (jobs stored before owners existed are "local"'s). */
+  const job = (id: string): StoredJob | undefined => {
+    const file = path.join(JOBS, `${id}.json`);
+    if (!fs.existsSync(file)) return undefined;
+    const j = readJson<StoredJob>(file);
+    return (j.owner ?? "local") === owner ? j : undefined;
+  };
   const deletedNames = (): string[] => (fs.existsSync(DELETED) ? readJson<string[]>(DELETED) : []);
 
   const versionNumbers = (name: string): number[] => {
@@ -104,22 +122,22 @@ export function filesBackend(dataDir: string): Backend {
       const file = path.join(TRACES, `${id}.json`);
       return fs.existsSync(file) ? readJson(file) : undefined;
     },
-    createJob: (job) => writeJson(path.join(JOBS, `${job.id}.json`), job),
+    createJob: (info) => writeJson(path.join(JOBS, `${info.id}.json`), { ...info, owner }),
     setJobStatus(id, status) {
-      const file = path.join(JOBS, `${id}.json`);
-      if (fs.existsSync(file)) writeJson(file, { ...readJson<JobInfo>(file), status });
+      const j = job(id);
+      if (j) writeJson(path.join(JOBS, `${id}.json`), { ...j, status });
     },
     getJobInfo(id) {
-      const file = path.join(JOBS, `${id}.json`);
-      return fs.existsSync(file) ? readJson<JobInfo>(file) : undefined;
+      const j = job(id);
+      return j && { id: j.id, type: j.type, status: j.status, created_at: j.created_at };
     },
     appendJobEvent(id, seq, event) {
-      fs.mkdirSync(JOBS, { recursive: true });
+      if (!job(id)) return;
       fs.appendFileSync(path.join(JOBS, `${id}.events.jsonl`), JSON.stringify({ seq, event }) + "\n");
     },
     jobEvents(id, afterSeq) {
       const file = path.join(JOBS, `${id}.events.jsonl`);
-      if (!fs.existsSync(file)) return [];
+      if (!job(id) || !fs.existsSync(file)) return [];
       return fs
         .readFileSync(file, "utf8")
         .split("\n")

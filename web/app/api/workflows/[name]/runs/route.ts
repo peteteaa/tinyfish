@@ -4,6 +4,7 @@ import { startRunJob } from "@core/jobs.js";
 import { validateWorkflow, type Workflow } from "@core/schema.js";
 import { getWorkflow, listRuns } from "@core/store.js";
 import { apiError, readJson } from "@/lib/api";
+import { withUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 /** Seconds a job may run after the response (Vercel; the platform caps this per plan). */
@@ -16,7 +17,7 @@ type Ctx = { params: Promise<{ name: string }> };
  * POST { params, version? } -> 202 { jobId }. Params are checked before the run starts.
  * POST { params, workflow } test-runs unsaved changes instead; that run isn't saved to run history.
  */
-export async function POST(request: Request, { params }: Ctx) {
+export const POST = withUser(async (request: Request, { params }: Ctx) => {
   const { name } = await params;
   const body = (await readJson(request)) ?? {};
   const version = typeof body.version === "number" ? body.version : undefined;
@@ -43,14 +44,14 @@ export async function POST(request: Request, { params }: Ctx) {
   // On serverless hosts the function would stop once the response is sent; after() keeps the job running.
   after(() => job.done);
   return Response.json({ jobId: job.id }, { status: 202 });
-}
+});
 
 /** GET ?limit= -> run summaries, most recent first. */
-export async function GET(request: Request, { params }: Ctx) {
+export const GET = withUser(async (request: Request, { params }: Ctx) => {
   const { name } = await params;
   const limit = Math.min(Math.max(Number(new URL(request.url).searchParams.get("limit")) || 20, 1), 200);
   const runs = (await listRuns(name, limit)).map(({ run_id, version, status, started_at, finished_at, duration_ms, params, error }) => ({
     run_id, version, status, started_at, finished_at, duration_ms, params, error,
   }));
   return Response.json({ runs });
-}
+});

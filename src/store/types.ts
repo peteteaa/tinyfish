@@ -98,7 +98,10 @@ export interface Store {
 /** Sync (SQLite, files) or async (Postgres). */
 type Awaitable<T> = T | Promise<T>;
 
-/** What each backend implements; shared logic (validation, summaries, diff, seeding) lives in common.ts. */
+/**
+ * What each backend implements, for one owner: every method only sees and writes that owner's data. Shared logic
+ * (validation, summaries, diff, seeding) lives in common.ts.
+ */
 export interface Backend {
   names(): Awaitable<string[]>;
   versions(name: string): Awaitable<VersionInfo[]>;
@@ -107,7 +110,7 @@ export interface Backend {
   write(wf: Workflow, source: VersionSource): Awaitable<void>;
   /** Allocates the next version number and writes atomically where the backend supports it. */
   writeNext(wf: Workflow, source: VersionSource): Awaitable<Workflow>;
-  /** Deletes all versions and runs of `name` and remembers it so seeding doesn't bring it back. */
+  /** Deletes all versions and runs of `name` and remembers it so seeding doesn't bring it back (for this owner). */
   remove(name: string): Awaitable<void>;
   /** True if `name` was removed (seeding skips it). */
   removed(name: string): Awaitable<boolean>;
@@ -122,3 +125,6 @@ export interface Backend {
   appendJobEvent(id: string, seq: number, event: unknown): Awaitable<void>;
   jobEvents(id: string, afterSeq: number): Awaitable<JobEventRow[]>;
 }
+
+/** A backend opens its database (or directory) once and hands out per-owner views of it. */
+export type BackendFactory = (owner: string) => Backend;

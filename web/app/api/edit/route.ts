@@ -2,6 +2,7 @@ import { editWorkflow, type EditTurn } from "@core/edit.js";
 import { WorkflowSchema } from "@core/schema.js";
 import { log } from "@core/env.js";
 import { apiError, readJson } from "../../../lib/api";
+import { withUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
  * POST { workflow, instruction, history? } -> 200 { workflow, reply, diff, changed }.
  * Gemini applies the instruction to the workflow. Nothing is saved; POST /api/workflows to save the result.
  */
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = await readJson(request);
   const instruction = typeof body?.instruction === "string" ? body.instruction.trim() : "";
   if (!instruction) return apiError(400, "missing_instruction", "Describe the change you want.");
@@ -30,4 +31,4 @@ export async function POST(request: Request) {
     log(`edit failed: ${message}`);
     return apiError(502, "edit_failed", message);
   }
-}
+});

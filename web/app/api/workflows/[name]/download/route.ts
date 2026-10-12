@@ -1,11 +1,12 @@
 import { getWorkflow } from "@core/store.js";
 import { apiError } from "@/lib/api";
+import { withUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** GET ?version= -> <name>.workflow.json as an attachment. */
-export async function GET(request: Request, { params }: { params: Promise<{ name: string }> }) {
+export const GET = withUser(async (request: Request, { params }: { params: Promise<{ name: string }> }) => {
   const { name } = await params;
   const v = new URL(request.url).searchParams.get("version");
   const workflow = await getWorkflow(name, v ? Number(v) : undefined);
@@ -16,4 +17,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ name
       "Content-Disposition": `attachment; filename="${workflow.name}.workflow.json"`,
     },
   });
-}
+});

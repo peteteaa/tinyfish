@@ -7,7 +7,7 @@ import { test } from "node:test";
 process.env.WM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "wm-jobs-test-"));
 
 const { followJob, getJob, startJob, subscribe } = await import("../src/jobs.js");
-const { createStore, jobStore } = await import("../src/store.js");
+const { createStore, currentOwner, jobStore, runAs } = await import("../src/store.js");
 type JobEvent = import("../src/jobs.js").JobEvent;
 
 const finished = (job: { id: string }) =>
@@ -93,4 +93,31 @@ test("followJob: streams a job that only exists in the store", async () => {
   const how = await followJob(id, (e) => seen.push(e), { maxMs: 5000 });
   assert.equal(how, "finished");
   assert.deepEqual(seen.map((e) => e.kind), ["step", "done"]);
+});
+
+test("jobs: owned by whoever started them; invisible to other owners", async () => {
+  let seenBefore: string | undefined;
+  let seenAfter: string | undefined;
+  const job = runAs("user_a", () =>
+    startJob("test", async () => {
+      seenBefore = currentOwner();
+      await new Promise((r) => setTimeout(r, 5));
+      seenAfter = currentOwner();
+    }),
+  );
+  await job.done;
+  assert.equal(job.owner, "user_a");
+  assert.equal(job.status, "done");
+  assert.equal(seenBefore, "user_a");
+  assert.equal(seenAfter, "user_a");
+  assert.equal(runAs("user_a", () => getJob(job.id)), job);
+  assert.equal(runAs("user_b", () => getJob(job.id)), undefined);
+  assert.equal(getJob(job.id), undefined);
+
+  const seen: JobEvent[] = [];
+  assert.equal(await runAs("user_b", () => followJob(job.id, (e) => seen.push(e), { maxMs: 100 })), "not_found");
+  assert.equal(await followJob(job.id, (e) => seen.push(e), { maxMs: 100 }), "not_found");
+  assert.equal(seen.length, 0);
+  assert.equal(await runAs("user_a", () => followJob(job.id, (e) => seen.push(e), { maxMs: 1000 })), "finished");
+  assert.deepEqual(seen.map((e) => e.kind), ["done"]);
 });

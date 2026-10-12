@@ -14,6 +14,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.14",
     "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

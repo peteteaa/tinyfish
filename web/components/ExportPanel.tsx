@@ -17,7 +17,7 @@ const GEMINI_KEYS_URL = "https://aistudio.google.com/apikey";
 /**
  * How to run this workflow outside the web app. `local`: the app runs from a checkout on this computer, so commands
  * use its path. Otherwise (hosted, e.g. Vercel) the reader has nothing installed: clone the repo, install, add a
- * TinyFish (and Gemini) key, import the workflow from this site, then run it.
+ * TinyFish (and Gemini) key, import the workflow downloaded from this site, then run it.
  */
 export function ExportPanel({
   name,
@@ -25,14 +25,12 @@ export function ExportPanel({
   local,
   root,
   repoUrl,
-  siteUrl,
 }: {
   name: string;
   params: Record<string, Param>;
   local: boolean;
   root: string;
   repoUrl: string;
-  siteUrl: string;
 }) {
   const defaults = defaultsOf(params);
   const flags = Object.entries(defaults).map(([k, v]) => `--${k}=${shellQuote(Array.isArray(v) ? v.join(",") : String(v))}`);
@@ -43,7 +41,8 @@ export function ExportPanel({
 
   const install = `git clone ${repoUrl} workflow-memory\ncd workflow-memory\nnpm install\ncp .env.example .env`;
   const keys = `TINYFISH_API_KEY=your-tinyfish-key\nGEMINI_API_KEY=your-gemini-key`;
-  const importCmd = `${cd}\ncurl -fsSL ${siteUrl}${downloadPath} -o ${file}\nnpx tsx src/cli.ts save ${file}`;
+  // Hosted downloads need the signed-in browser session, so the hosted import saves the file the browser downloaded.
+  const importCmd = `${cd}\nnpx tsx src/cli.ts save ~/Downloads/${file}`;
   const run = `${cd}\nnpm run run-wf -- ${[name, ...flags].join(" ")}`;
   const mcpPath = local ? `${root}/src/mcp.ts` : `"$(pwd)/src/mcp.ts"`;
   const mcpCmd = `${cd}\nclaude mcp add workflow-memory -- npx tsx ${mcpPath}`;
@@ -82,8 +81,8 @@ export function ExportPanel({
 
           <h3 className="export-heading">3. Import this workflow</h3>
           <p className="small muted">
-            Downloads it from this site and saves it as a version on your computer. Or{" "}
-            <a href={downloadPath}>download {file}</a> and run the last line yourself.
+            <a href={downloadPath}>Download {file}</a>, then save it as a version on your computer. Change the path if your browser
+            saves downloads somewhere else.
           </p>
           <CopyBlock text={importCmd} label="import commands" />
         </>

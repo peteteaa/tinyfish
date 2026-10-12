@@ -6,7 +6,7 @@ import { describe, test } from "node:test";
 
 process.env.WM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "wm-store-default-"));
 
-const { createStore } = await import("../src/store.js");
+const { createStore, createStores } = await import("../src/store.js");
 type RunRecord = import("../src/store.js").RunRecord;
 
 const wfInput = (over: Record<string, unknown> = {}) => ({
@@ -237,7 +237,174 @@ test("sqlite backend: db file, WAL and user_version", async () => {
   await createStore("sqlite", dir).saveWorkflow(wfInput());
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(path.join(dir, "workflow-memory.db"));
-  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 3);
+  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 4);
   assert.equal((db.prepare("PRAGMA journal_mode").get() as any).journal_mode, "wal");
   db.close();
+});
+
+const mkdir = (tag: string) => fs.mkdtempSync(path.join(os.tmpdir(), `wm-store-${tag}-`));
+
+for (const kind of ["sqlite", "files"] as const) {
+  describe(`owners (${kind})`, () => {
+    const setup = () => {
+      const dir = mkdir(`owners-${kind}`);
+      const stores = createStores(kind, dir);
+      return { dir, a: stores("user_a"), b: stores("user_b"), stores };
+    };
+
+    test("each owner gets the seed independently", async () => {
+      const { a, b, stores } = setup();
+      assert.ok((await a.listWorkflows()).some((w) => w.name === "competitor_pricing"));
+      assert.ok((await b.listWorkflows()).some((w) => w.name === "competitor_pricing"));
+      assert.equal(await a.deleteWorkflow("competitor_pricing"), true);
+      assert.ok(!(await a.listWorkflows()).some((w) => w.name === "competitor_pricing"));
+      assert.ok(!(await a.listWorkflows()).some((w) => w.name === "competitor_pricing")); // no re-seed
+      assert.ok(!(await stores("user_a").listWorkflows()).some((w) => w.name === "competitor_pricing"));
+      assert.ok((await b.listWorkflows()).some((w) => w.name === "competitor_pricing"));
+      assert.equal((await b.getWorkflow("competitor_pricing"))!.version, 1);
+    });
+
+    test("same workflow name has independent versions per owner", async () => {
+      const { a, b } = setup();
+      assert.equal((await a.saveWorkflow(wfInput({ description: "a1" }))).version, 1);
+      assert.equal((await a.saveWorkflow(wfInput({ description: "a2" }))).version, 2);
+      assert.equal((await b.saveWorkflow(wfInput({ description: "b1" }))).version, 1);
+      assert.equal((await a.getWorkflow("demo"))!.description, "a2");
+      assert.equal((await b.getWorkflow("demo"))!.description, "b1");
+      assert.equal(await b.getWorkflow("demo", 2), undefined);
+      assert.deepEqual((await a.listVersions("demo")).map((v) => v.version), [1, 2]);
+      assert.deepEqual((await b.listVersions("demo")).map((v) => v.version), [1]);
+      assert.deepEqual((await a.listWorkflows()).find((w) => w.name === "demo")!.versions, [1, 2]);
+      assert.deepEqual((await b.listWorkflows()).find((w) => w.name === "demo")!.versions, [1]);
+      await b.saveWorkflow(wfInput({ name: "only_b" }));
+      assert.ok(!(await a.listWorkflows()).some((w) => w.name === "only_b"));
+      assert.equal(await a.getWorkflow("only_b"), undefined);
+    });
+
+    test("runs are private; delete removes only the owner's runs; run ids can't be overwritten", async () => {
+      const { a, b } = setup();
+      await a.saveWorkflow(wfInput());
+      await b.saveWorkflow(wfInput());
+      await a.saveRun(run("demo", "r1", "2026-01-01T00:00:01.000Z", "ok"));
+      assert.equal(await b.getRun("r1"), undefined);
+      assert.deepEqual(await b.listRuns("demo"), []);
+      assert.equal(await b.lastSuccessfulRun("demo"), undefined);
+      assert.equal((await a.getRun("r1"))!.status, "ok");
+
+      await b.saveRun(run("demo", "r2", "2026-01-01T00:00:02.000Z", "ok"));
+      await b.saveRun(run("demo", "r1", "2026-01-01T00:00:03.000Z", "error")); // same id as a's run
+      assert.equal((await a.getRun("r1"))!.status, "ok");
+      assert.equal((await a.getRun("r1"))!.started_at, "2026-01-01T00:00:01.000Z");
+      assert.deepEqual((await a.listRuns("demo")).map((r) => r.run_id), ["r1"]);
+      assert.equal((await a.lastSuccessfulRun("demo"))!.run_id, "r1");
+
+      assert.equal(await a.deleteWorkflow("demo"), true);
+      assert.deepEqual(await a.listRuns("demo"), []);
+      assert.equal(await a.getRun("r1"), undefined);
+      assert.equal((await b.getRun("r2"))!.run_id, "r2");
+      assert.ok((await b.listRuns("demo")).some((r) => r.run_id === "r2"));
+      assert.ok(await b.getWorkflow("demo"));
+    });
+
+    test("traces are private and can't be overwritten by another owner", async () => {
+      const { a, b } = setup();
+      await a.saveTrace("t1", { goal: "a's" });
+      assert.equal(await b.getTrace("t1"), undefined);
+      await b.saveTrace("t1", { goal: "b's" });
+      assert.deepEqual(await a.getTrace("t1"), { goal: "a's" });
+    });
+
+    test("jobs are private to their owner", async () => {
+      const { a, b } = setup();
+      const created_at = "2026-01-01T00:00:00.000Z";
+      await a.createJob({ id: "j1", type: "test", status: "running", created_at });
+      await a.appendJobEvent("j1", 1, { kind: "step" });
+      assert.equal(await b.getJobInfo("j1"), undefined);
+      assert.deepEqual(await b.jobEvents("j1", 0), []);
+      await b.setJobStatus("j1", "error");
+      assert.equal((await a.getJobInfo("j1"))!.status, "running");
+      await b.appendJobEvent("j1", 2, { kind: "intruder" });
+      assert.deepEqual(await a.jobEvents("j1", 0), [{ seq: 1, event: { kind: "step" } }]);
+      await a.setJobStatus("j1", "done");
+      assert.equal((await a.getJobInfo("j1"))!.status, "done");
+    });
+  });
+}
+
+test("files backend: odd owner ids stay under <data>/users/", async () => {
+  const dir = mkdir("odd-owner");
+  const evil = ["user:x/y", "../../escape", "a b%c", "..", "."];
+  const stores = createStores("files", dir);
+  for (const owner of evil) {
+    const s = stores(owner);
+    await s.saveWorkflow(wfInput());
+    await s.saveRun(run("demo", "r1", "2026-01-01T00:00:00Z", "ok"));
+    await s.saveTrace("t1", { goal: owner });
+    assert.equal((await s.getWorkflow("demo"))!.version, 1, owner);
+    assert.equal((await s.getRun("r1"))!.status, "ok", owner);
+    assert.deepEqual(await s.getTrace("t1"), { goal: owner });
+  }
+  const users = path.join(dir, "users");
+  assert.equal(fs.readdirSync(users).length, evil.length);
+  for (const e of fs.readdirSync(users)) assert.ok(!e.includes("/") && e !== ".." && e !== ".");
+  assert.ok(fs.existsSync(path.join(users, encodeURIComponent("user:x/y"), "workflows", "demo", "v1.json")));
+  assert.ok(!fs.existsSync(path.join(dir, "workflows", "demo")));
+  assert.ok(!fs.existsSync(path.join(path.dirname(dir), "escape")));
+  // other owners don't see each other's data
+  assert.equal(await stores("user:x").getWorkflow("demo"), undefined);
+});
+
+test("sqlite migration: a version-3 database becomes version 4 with its rows owned by local", async () => {
+  const dir = mkdir("migrate");
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(path.join(dir, "workflow-memory.db"));
+  db.exec(`CREATE TABLE workflows (
+     name TEXT NOT NULL, version INTEGER NOT NULL, json TEXT NOT NULL, source TEXT NOT NULL, created_at TEXT NOT NULL,
+     PRIMARY KEY (name, version)
+   );
+   CREATE TABLE runs (
+     run_id TEXT PRIMARY KEY, workflow TEXT NOT NULL, version INTEGER, status TEXT NOT NULL,
+     started_at TEXT NOT NULL, finished_at TEXT, json TEXT NOT NULL
+   );
+   CREATE INDEX runs_workflow_started ON runs (workflow, started_at);
+   CREATE TABLE learn_sessions (
+     id TEXT PRIMARY KEY, goal TEXT, trace_json TEXT NOT NULL, created_at TEXT NOT NULL
+   );
+   CREATE TABLE deleted_workflows (name TEXT PRIMARY KEY, deleted_at TEXT NOT NULL);
+   CREATE TABLE jobs (id TEXT PRIMARY KEY, type TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL);
+   CREATE TABLE job_events (job_id TEXT NOT NULL, seq INTEGER NOT NULL, json TEXT NOT NULL, PRIMARY KEY (job_id, seq));
+   PRAGMA user_version = 3;`);
+  const t = "2026-01-01T00:00:00.000Z";
+  db.prepare("INSERT INTO workflows VALUES (?, ?, ?, ?, ?)").run("demo", 1, JSON.stringify(wfInput({ version: 1 })), "cli", t);
+  const r = run("demo", "old-run", t, "ok");
+  db.prepare("INSERT INTO runs (run_id, workflow, version, status, started_at, finished_at, json) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
+    r.run_id, r.workflow, r.version, r.status, r.started_at, r.finished_at, JSON.stringify(r),
+  );
+  db.prepare("INSERT INTO deleted_workflows VALUES (?, ?)").run("competitor_pricing", t);
+  db.prepare("INSERT INTO jobs VALUES (?, ?, ?, ?)").run("old-job", "test", "done", t);
+  db.prepare("INSERT INTO job_events VALUES (?, ?, ?)").run("old-job", 1, JSON.stringify({ kind: "done" }));
+  db.close();
+
+  const stores = createStores("sqlite", dir);
+  const local = stores("local");
+  const names = (await local.listWorkflows()).map((w) => w.name);
+  assert.deepEqual(names, ["demo"]); // competitor_pricing stays deleted
+  assert.equal((await local.getWorkflow("demo", 1))!.version, 1);
+  assert.equal((await local.listVersions("demo"))[0].source, "cli");
+  assert.equal((await local.getRun("old-run"))!.status, "ok");
+  assert.deepEqual((await local.listRuns("demo")).map((x) => x.run_id), ["old-run"]);
+  assert.equal((await local.getJobInfo("old-job"))!.status, "done");
+  assert.deepEqual(await local.jobEvents("old-job", 0), [{ seq: 1, event: { kind: "done" } }]);
+
+  const ua = stores("user_a");
+  assert.equal(await ua.getWorkflow("demo"), undefined);
+  assert.equal(await ua.getRun("old-run"), undefined);
+  assert.deepEqual(await ua.listRuns("demo"), []);
+  assert.equal(await ua.getJobInfo("old-job"), undefined);
+  assert.deepEqual(await ua.jobEvents("old-job", 0), []);
+  assert.deepEqual((await ua.listWorkflows()).map((w) => w.name), ["competitor_pricing"]);
+
+  const check = new DatabaseSync(path.join(dir, "workflow-memory.db"));
+  assert.equal((check.prepare("PRAGMA user_version").get() as any).user_version, 4);
+  check.close();
 });
