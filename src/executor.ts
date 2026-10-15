@@ -16,7 +16,7 @@ export interface RunOptions {
 
 // ---------- params ----------
 
-function coerce(name: string, spec: Param, raw: unknown): unknown {
+export function coerce(name: string, spec: Param, raw: unknown): unknown {
   if (raw === undefined) return raw;
   switch (spec.type) {
     case "string[]":
@@ -93,7 +93,15 @@ export function runCheck(c: Check, output: unknown): CheckResult {
     }
     case "regex": {
       const s = typeof v === "string" ? v : JSON.stringify(v ?? "");
-      return new RegExp(c.pattern).test(s)
+      // Workflows saved before the schema validated patterns may hold a bad one: fail the check (repairable),
+      // don't error the step.
+      let re: RegExp;
+      try {
+        re = new RegExp(c.pattern);
+      } catch (err) {
+        return { check: name, passed: false, message: `invalid pattern: ${err instanceof Error ? err.message : String(err)}` };
+      }
+      return re.test(s)
         ? { check: name, passed: true }
         : { check: name, passed: false, message: "pattern did not match" };
     }

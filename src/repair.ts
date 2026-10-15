@@ -3,10 +3,11 @@
 // the proposal and saves it as the next version with source.repaired_from set.
 
 import { summarize } from "./compile.js";
+import { diffWorkflows, hasChanges } from "./diff.js";
 import { editWorkflow, type EditResult, type EditTurn } from "./edit.js";
 import { log } from "./env.js";
 import { isTransientGeminiError } from "./llm.js";
-import { resolveParams, runWorkflowDef } from "./executor.js";
+import { coerce, resolveParams, runWorkflowDef } from "./executor.js";
 import type { Step, Workflow } from "./schema.js";
 import type { RunRecord, StepRecord } from "./store/types.js";
 import { resolve, type TemplateContext } from "./template.js";
@@ -140,10 +141,15 @@ const workflowStep = (wf: Workflow, id: string) => wf.steps.find((s) => s.id ===
 export async function repairWorkflow(current: Workflow, run: RunRecord, stepId: string, history: EditTurn[] = []): Promise<EditResult> {
   const record = run.steps.find((s) => s.id === stepId);
   if (!record) throw new Error(`Run ${run.run_id} has no step "${stepId}".`);
-  if (record.status === "ok") throw new Error(`Step "${stepId}" passed in that run; there's nothing to repair.`);
-  const what = record.status === "error" ? `errored: ${record.error ?? "unknown error"}` : "failed its checks";
+  // Every step passed but the run still errored: the workflow's output template picked nothing (or threw).
+  const outputFailed = record.status === "ok" && run.status === "error" && run.steps.every((s) => s.status === "ok");
+  if (record.status === "ok" && !outputFailed) throw new Error(`Step "${stepId}" passed in that run; there's nothing to repair.`);
   const where = run.version ? `In run ${run.run_id} (v${run.version})` : "In a test run of your previous fix";
-  const result = await editWorkflow(current, `Repair step "${stepId}". ${where} it ${what}.`, history, {
+  const request = outputFailed
+    ? `Repair the workflow's output. ${where} every step passed, but the output failed: ${run.error ?? "unknown error"}. ` +
+      `Fix the "output" template so it reads the real shape of "${stepId}".`
+    : `Repair step "${stepId}". ${where} it ${record.status === "error" ? `errored: ${record.error ?? "unknown error"}` : "failed its checks"}.`;
+  const result = await editWorkflow(current, request, history, {
     rules: RULES,
     context: runEvidence(current, run, stepId),
     validate: (proposed) => guardChecks(current, record, proposed),
@@ -174,7 +180,7 @@ const failureLines = (rec?: StepRecord) =>
 /** How far a test run got: steps that passed before the first failure, then fewer failed checks. Higher is better. */
 function progress(wf: Workflow, run: RunRecord): number {
   const failed = firstFailed(run);
-  if (!failed) return Infinity;
+  if (!failed) return run.status === "ok" ? Infinity : wf.steps.length * 1000 - 1; // every step passed, the output failed
   const at = wf.steps.findIndex((s) => s.id === failed.id);
   return at * 1000 - failureLines(failed).length;
 }
@@ -197,6 +203,23 @@ export async function repairAndVerify(
   let evidenceRun = run;
   let step = stepId;
   let best: { result: EditResult; score: number; test: VerifiedRepair["test"]; round: number } | undefined;
+  // Later rounds edit the previous proposal, so their diff covers only that round; the user reviews every change.
+  const againstCurrent = (r: EditResult): EditResult => {
+    const diff = diffWorkflows(current.name, current, r.workflow, current.version ?? 0, current.version ?? 0);
+    return { ...r, diff, changed: hasChanges(diff) };
+  };
+  // run.params holds resolved values, defaults included. Passing an old default back as explicit input would override
+  // a fix that changes that default, so leave defaults out and let the proposal's own apply.
+  const isDefault = (name: string, value: unknown) => {
+    const spec = current.params[name];
+    if (!spec || spec.default === undefined) return false;
+    try {
+      return JSON.stringify(coerce(name, spec, spec.default)) === JSON.stringify(value);
+    } catch {
+      return false;
+    }
+  };
+  const runInput = Object.entries(run.params).filter(([k, v]) => v !== undefined && v !== null && !isDefault(k, v));
 
   for (let round = 1; round <= maxRounds; round++) {
     emit({ kind: "repair_round", round, step });
@@ -207,12 +230,12 @@ export async function repairAndVerify(
     if (!result.changed) {
       // Gemini judged the workflow fine (e.g. the run's params were wrong). Return the previous best fix if any.
       if (best) break;
-      return { ...result, verified: null, rounds: round };
+      return { ...againstCurrent(result), verified: null, rounds: round };
     }
     history.push({ role: "user", text: `Repair step "${step}".` }, { role: "assistant", text: result.reply });
 
     const { version: _v, ...unsaved } = result.workflow;
-    const input = Object.fromEntries(Object.entries(run.params).filter(([k, v]) => k in unsaved.params && v !== undefined && v !== null));
+    const input = Object.fromEntries(runInput.filter(([k]) => k in unsaved.params));
     let test: RunRecord;
     try {
       resolveParams(unsaved, input);
@@ -223,36 +246,41 @@ export async function repairAndVerify(
       // The fix needs a param the failed run didn't have; it can't be tested with those params.
       const message = err instanceof Error ? err.message : String(err);
       emit({ kind: "test_done", round, status: "invalid_params", failures: [message] });
-      return { ...result, verified: null, rounds: round, test: { status: "invalid_params", failures: [message] } };
+      return { ...againstCurrent(result), verified: null, rounds: round, test: { status: "invalid_params", failures: [message] } };
     }
     const failed = firstFailed(test);
-    const summary = { status: test.status, failed_step: failed?.id, failures: failureLines(failed) };
+    // Every step can pass while the run errors at the output template; that's a failure too.
+    const outputFailed = !failed && test.status !== "ok";
+    const summary = outputFailed
+      ? { status: test.status, failed_step: "output", failures: [test.error ?? "the output failed"] }
+      : { status: test.status, failed_step: failed?.id, failures: failureLines(failed) };
     emit({ kind: "test_done", round, ...summary });
     // A rate limit or outage during the test says nothing about the fix; don't let Gemini "repair" it.
     if (failed?.error && (isTransientGeminiError(failed.error) || /\b(429|5\d\d)\b|rate.?limit|timed? ?out/i.test(failed.error))) {
       return {
-        ...result,
+        ...againstCurrent(result),
         reply: `${result.reply} I couldn't finish testing it: "${failed.id}" hit a temporary error (${failed.error.slice(0, 120)}). Try Test changes again in a minute.`,
         verified: null,
         rounds: round,
         test: summary,
       };
     }
-    log(`  repair round ${round}: test ${test.status}${failed ? ` at ${failed.id}` : ""}`);
+    log(`  repair round ${round}: test ${test.status}${summary.failed_step ? ` at ${summary.failed_step}` : ""}`);
 
     const score = progress(unsaved, test);
     if (!best || score > best.score) best = { result, score, test: summary, round };
-    if (!failed) return { ...result, verified: true, rounds: round, test: summary };
+    if (test.status === "ok") return { ...againstCurrent(result), verified: true, rounds: round, test: summary };
 
     base = result.workflow;
     evidenceRun = test;
-    step = failed.id;
+    // An output failure is repaired from the last step's evidence (repairWorkflow sees that every step passed).
+    step = failed?.id ?? test.steps.at(-1)!.id;
   }
 
   const b = best!;
   const where = b.test?.failed_step ? ` at "${b.test.failed_step}" (${b.test.failures.slice(0, 2).join("; ")})` : "";
   return {
-    ...b.result,
+    ...againstCurrent(b.result),
     reply: `${b.result.reply} I tested this fix and it still fails${where}, so review it before saving.`,
     verified: false,
     rounds: b.round,

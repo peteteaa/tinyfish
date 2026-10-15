@@ -150,7 +150,9 @@ export function normalizeSchema(schema: unknown): unknown {
   if (!schema || typeof schema !== "object") return schema;
   return Object.fromEntries(
     Object.entries(schema).map(([k, v]) => {
-      if (k === "type") return [k, Array.isArray(v) ? v.map((t) => (typeof t === "string" ? t.toLowerCase() : t)) : typeof v === "string" ? v.toLowerCase() : v];
+      if (k === "type" && typeof v === "string") return [k, v.toLowerCase()];
+      if (k === "type" && Array.isArray(v)) return [k, v.map((t) => (typeof t === "string" ? t.toLowerCase() : t))];
+      // Anything else, including a property named "type" (its value is a schema object), is recursed into.
       // Property names under "properties" are user data, not schema keywords, but their values are schemas.
       return [k, normalizeSchema(v)];
     }),

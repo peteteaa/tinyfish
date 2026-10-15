@@ -22,9 +22,19 @@ export const CheckSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("regex"),
     path: z.string().optional(),
-    pattern: z.string(),
+    // Gemini writes these; an invalid one should go back to it at compile/edit time, not error the step at run time.
+    pattern: z.string().max(500).refine(isRegex, "not a valid JavaScript regular expression"),
   }),
 ]);
+
+function isRegex(pattern: string): boolean {
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch {
+    return false;
+  }
+}
 export type Check = z.infer<typeof CheckSchema>;
 
 const StepBase = {
