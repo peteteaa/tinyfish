@@ -174,8 +174,12 @@ for (const kind of ["sqlite", "files"] as const) {
       const s = fresh();
       const created_at = "2026-01-01T00:00:00.000Z";
       await s.createJob({ id: "j1", type: "test", status: "running", created_at });
-      assert.deepEqual({ ...(await s.getJobInfo("j1")) }, { id: "j1", type: "test", status: "running", created_at });
+      assert.deepEqual({ ...(await s.getJobInfo("j1")) }, { id: "j1", type: "test", status: "running", created_at, updated_at: created_at });
       assert.equal(await s.getJobInfo("nope"), undefined);
+      await s.touchJob("j1");
+      const touched = (await s.getJobInfo("j1"))!;
+      assert.ok(touched.updated_at! > created_at, "touchJob moves the heartbeat forward");
+      assert.equal(touched.status, "running");
       await s.appendJobEvent("j1", 1, { kind: "step", n: 1 });
       await s.appendJobEvent("j1", 2, { kind: "step", n: 2 });
       await s.appendJobEvent("j1", 3, { kind: "done" });
@@ -237,7 +241,7 @@ test("sqlite backend: db file, WAL and user_version", async () => {
   await createStore("sqlite", dir).saveWorkflow(wfInput());
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(path.join(dir, "workflow-memory.db"));
-  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 4);
+  assert.equal((db.prepare("PRAGMA user_version").get() as any).user_version, 5);
   assert.equal((db.prepare("PRAGMA journal_mode").get() as any).journal_mode, "wal");
   db.close();
 });
@@ -322,7 +326,9 @@ for (const kind of ["sqlite", "files"] as const) {
       assert.equal(await b.getJobInfo("j1"), undefined);
       assert.deepEqual(await b.jobEvents("j1", 0), []);
       await b.setJobStatus("j1", "error");
+      await b.touchJob("j1");
       assert.equal((await a.getJobInfo("j1"))!.status, "running");
+      assert.equal((await a.getJobInfo("j1"))!.updated_at, created_at, "another owner can't touch the job");
       await b.appendJobEvent("j1", 2, { kind: "intruder" });
       assert.deepEqual(await a.jobEvents("j1", 0), [{ seq: 1, event: { kind: "step" } }]);
       await a.setJobStatus("j1", "done");
@@ -354,7 +360,7 @@ test("files backend: odd owner ids stay under <data>/users/", async () => {
   assert.equal(await stores("user:x").getWorkflow("demo"), undefined);
 });
 
-test("sqlite migration: a version-3 database becomes version 4 with its rows owned by local", async () => {
+test("sqlite migration: a version-3 database is migrated to the latest version with its rows owned by local", async () => {
   const dir = mkdir("migrate");
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(path.join(dir, "workflow-memory.db"));
@@ -394,6 +400,7 @@ test("sqlite migration: a version-3 database becomes version 4 with its rows own
   assert.equal((await local.getRun("old-run"))!.status, "ok");
   assert.deepEqual((await local.listRuns("demo")).map((x) => x.run_id), ["old-run"]);
   assert.equal((await local.getJobInfo("old-job"))!.status, "done");
+  assert.equal((await local.getJobInfo("old-job"))!.updated_at, undefined, "rows from before the heartbeat have none");
   assert.deepEqual(await local.jobEvents("old-job", 0), [{ seq: 1, event: { kind: "done" } }]);
 
   const ua = stores("user_a");
@@ -405,6 +412,6 @@ test("sqlite migration: a version-3 database becomes version 4 with its rows own
   assert.deepEqual((await ua.listWorkflows()).map((w) => w.name), ["competitor_pricing"]);
 
   const check = new DatabaseSync(path.join(dir, "workflow-memory.db"));
-  assert.equal((check.prepare("PRAGMA user_version").get() as any).user_version, 4);
+  assert.equal((check.prepare("PRAGMA user_version").get() as any).user_version, 5);
   check.close();
 });

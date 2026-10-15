@@ -122,14 +122,18 @@ function ownerBackend(dataDir: string, owner: string): Backend {
       const file = path.join(TRACES, `${id}.json`);
       return fs.existsSync(file) ? readJson(file) : undefined;
     },
-    createJob: (info) => writeJson(path.join(JOBS, `${info.id}.json`), { ...info, owner }),
+    createJob: (info) => writeJson(path.join(JOBS, `${info.id}.json`), { ...info, updated_at: info.updated_at ?? info.created_at, owner }),
     setJobStatus(id, status) {
       const j = job(id);
-      if (j) writeJson(path.join(JOBS, `${id}.json`), { ...j, status });
+      if (j) writeJson(path.join(JOBS, `${id}.json`), { ...j, status, updated_at: new Date().toISOString() });
+    },
+    touchJob(id) {
+      const j = job(id);
+      if (j) writeJson(path.join(JOBS, `${id}.json`), { ...j, updated_at: new Date().toISOString() });
     },
     getJobInfo(id) {
       const j = job(id);
-      return j && { id: j.id, type: j.type, status: j.status, created_at: j.created_at };
+      return j && { id: j.id, type: j.type, status: j.status, created_at: j.created_at, ...(j.updated_at && { updated_at: j.updated_at }) };
     },
     appendJobEvent(id, seq, event) {
       if (!job(id)) return;

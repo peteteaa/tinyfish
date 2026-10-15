@@ -4,6 +4,7 @@
 // Set WM_DEBUG=1 to log raw responses.
 
 import { DEBUG, log, requireEnv } from "./env.js";
+import { jobSignal } from "./progress.js";
 
 const SEARCH_URL = process.env.TINYFISH_SEARCH_URL ?? "https://api.search.tinyfish.ai";
 const FETCH_URL = process.env.TINYFISH_FETCH_URL ?? "https://api.fetch.tinyfish.ai";
@@ -22,6 +23,8 @@ export class TinyFishError extends Error {
 async function call<T>(label: string, url: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, {
     ...init,
+    // Inside a job, requests stop when the job hits its time limit.
+    signal: init.signal ?? jobSignal(),
     headers: {
       "X-API-Key": requireEnv("TINYFISH_API_KEY"),
       "Content-Type": "application/json",
@@ -159,15 +162,38 @@ export function normalizeSchema(schema: unknown): unknown {
   );
 }
 
+/** Consecutive failed polls tolerated before giving up on a run (network blips, 429s, 5xx). */
+const POLL_RETRIES = 3;
+
+const transientCall = (err: unknown) =>
+  !(err instanceof TinyFishError) || err.status === undefined || err.status === 429 || err.status >= 500;
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal!.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 /**
  * Runs a browser agent. Uses /run-async + polling /v1/runs/{id} rather than the synchronous /run,
  * so long runs don't hit HTTP timeouts and callers can observe progress.
+ * Agent runs cost credits, so once started, a run that won't be waited for is cancelled: on timeout, when polling
+ * keeps failing, and when `signal` (by default the job's stop signal) aborts.
  */
 export async function runAgent(
   params: AgentParams,
-  opts: { pollMs?: number; timeoutMs?: number; onProgress?: (run: AgentRun) => void } = {},
+  opts: { pollMs?: number; timeoutMs?: number; onProgress?: (run: AgentRun) => void; signal?: AbortSignal } = {},
 ): Promise<AgentRun> {
-  const { pollMs = 3000, timeoutMs = 15 * 60_000, onProgress } = opts;
+  const { pollMs = 3000, timeoutMs = 15 * 60_000, onProgress, signal = jobSignal() } = opts;
   const body = {
     url: normalizeUrl(params.url),
     goal: params.goal,
@@ -183,19 +209,36 @@ export async function runAgent(
   );
   if (!started.run_id) throw new TinyFishError(`TinyFish agent failed to start: ${started.error?.message}`);
 
+  const runId = started.run_id;
   const deadline = Date.now() + timeoutMs;
   let lastSteps = -1;
-  while (true) {
-    const run = await call<AgentRun>("agent:poll", `${AGENT_URL}/v1/runs/${started.run_id}?screenshots=none&html=none`);
-    if (onProgress && (run.steps?.length ?? 0) !== lastSteps) {
-      lastSteps = run.steps?.length ?? 0;
-      onProgress(run);
+  let failedPolls = 0;
+  try {
+    while (true) {
+      signal?.throwIfAborted();
+      let run: AgentRun;
+      try {
+        run = await call<AgentRun>("agent:poll", `${AGENT_URL}/v1/runs/${runId}?screenshots=none&html=none`, { signal });
+        failedPolls = 0;
+      } catch (err) {
+        if (signal?.aborted || !transientCall(err) || ++failedPolls > POLL_RETRIES) throw err;
+        log(`  agent ${runId}: poll failed (${err instanceof Error ? err.message : err}); retrying`);
+        await sleep(pollMs * failedPolls, signal);
+        continue;
+      }
+      if (onProgress && (run.steps?.length ?? 0) !== lastSteps) {
+        lastSteps = run.steps?.length ?? 0;
+        onProgress(run);
+      }
+      if (TERMINAL.includes(run.status)) return run;
+      if (Date.now() > deadline) throw new TinyFishError(`TinyFish agent run ${runId} timed out after ${timeoutMs}ms`);
+      await sleep(pollMs, signal);
     }
-    if (TERMINAL.includes(run.status)) return run;
-    if (Date.now() > deadline) {
-      await call("agent:cancel", `${AGENT_URL}/v1/runs/${started.run_id}/cancel`, { method: "POST" }).catch(() => {});
-      throw new TinyFishError(`TinyFish agent run ${started.run_id} timed out after ${timeoutMs}ms`);
-    }
-    await new Promise((r) => setTimeout(r, pollMs));
+  } catch (err) {
+    // Not the job's signal: the cancel must go out even though the job is stopping.
+    await call("agent:cancel", `${AGENT_URL}/v1/runs/${runId}/cancel`, { method: "POST", signal: AbortSignal.timeout(10_000) }).catch(
+      (cancelErr) => log(`  agent ${runId}: couldn't cancel (${cancelErr instanceof Error ? cancelErr.message : cancelErr})`),
+    );
+    throw err;
   }
 }

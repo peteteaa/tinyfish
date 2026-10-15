@@ -97,6 +97,7 @@ export function makeStore(b: Backend, seedsDir: string): Store {
     // Jobs don't need seeds.
     createJob: async (job) => b.createJob(job),
     setJobStatus: async (id, status) => b.setJobStatus(id, status),
+    touchJob: async (id) => b.touchJob(id),
     getJobInfo: async (id) => b.getJobInfo(id),
     appendJobEvent: async (id, seq, event) => b.appendJobEvent(id, seq, event),
     jobEvents: async (id, afterSeq) => b.jobEvents(id, afterSeq),

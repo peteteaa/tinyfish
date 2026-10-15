@@ -88,7 +88,8 @@ export function RunView({ jobId, forEachIds, onDone, trial }: { jobId: string; f
   const state = reduceRunEvents(events);
   const [now, setNow] = useState(() => Date.now());
   const running = !state.finished && status !== "not_found" && status !== "lost";
-  const hasRun = state.run !== undefined;
+  // A job can end without run_done (an error, or the server stopped it at its time limit); release the Run button then too.
+  const ended = state.run !== undefined || state.finished || status === "not_found";
 
   useEffect(() => {
     if (!running) return;
@@ -97,9 +98,9 @@ export function RunView({ jobId, forEachIds, onDone, trial }: { jobId: string; f
   }, [running]);
 
   useEffect(() => {
-    if (hasRun) onDone();
+    if (ended) onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasRun]);
+  }, [ended]);
 
   const run = state.run;
   const counts = countCalls(state.steps, forEachIds);

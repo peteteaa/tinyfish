@@ -40,6 +40,8 @@ const SCHEMA = [
   `ALTER TABLE learn_sessions ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE deleted_workflows ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'local'`,
   `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS owner TEXT NOT NULL DEFAULT 'local'`,
+  // Job heartbeat, so a job whose process died (e.g. at the function time limit) can be told apart from a slow one.
+  `ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updated_at TEXT`,
   `DO $$
    DECLARE t record;
    BEGIN
@@ -145,14 +147,22 @@ export function postgresBackend(url: string): BackendFactory {
       return row && JSON.parse(row.trace_json);
     },
     async createJob(job) {
-      await q("INSERT INTO jobs (id, owner, type, status, created_at) VALUES ($1, $2, $3, $4, $5)", [job.id, owner, job.type, job.status, job.created_at]);
+      await q("INSERT INTO jobs (id, owner, type, status, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)", [
+        job.id, owner, job.type, job.status, job.created_at, job.updated_at ?? job.created_at,
+      ]);
     },
     async setJobStatus(id, status) {
-      await q("UPDATE jobs SET status = $3 WHERE id = $1 AND owner = $2", [id, owner, status]);
+      await q("UPDATE jobs SET status = $3, updated_at = $4 WHERE id = $1 AND owner = $2", [id, owner, status, now()]);
+    },
+    async touchJob(id) {
+      await q("UPDATE jobs SET updated_at = $3 WHERE id = $1 AND owner = $2", [id, owner, now()]);
     },
     async getJobInfo(id) {
-      const [row] = await q<JobInfo>("SELECT id, type, status, created_at FROM jobs WHERE id = $1 AND owner = $2", [id, owner]);
-      return row;
+      const [row] = await q<JobInfo & { updated_at: string | null }>(
+        "SELECT id, type, status, created_at, updated_at FROM jobs WHERE id = $1 AND owner = $2",
+        [id, owner],
+      );
+      return row && { id: row.id, type: row.type, status: row.status, created_at: row.created_at, ...(row.updated_at && { updated_at: row.updated_at }) };
     },
     async appendJobEvent(id, seq, event) {
       // Only into this owner's jobs.

@@ -45,6 +45,8 @@ const MIGRATIONS: string[] = [
    CREATE INDEX runs_owner_workflow_started ON runs (owner, workflow, started_at);
    ALTER TABLE learn_sessions ADD COLUMN owner TEXT NOT NULL DEFAULT 'local';
    ALTER TABLE jobs ADD COLUMN owner TEXT NOT NULL DEFAULT 'local';`,
+  // 5: job heartbeat, so a job whose process died (e.g. a serverless time limit) can be told apart from a slow one
+  `ALTER TABLE jobs ADD COLUMN updated_at TEXT;`,
 ];
 
 function migrate(db: DatabaseSyncType) {
@@ -147,13 +149,21 @@ export function sqliteBackend(dataDir: string): BackendFactory {
         return row && JSON.parse(row.trace_json);
       },
       createJob(job) {
-        db.prepare("INSERT INTO jobs (id, owner, type, status, created_at) VALUES (?, ?, ?, ?, ?)").run(job.id, owner, job.type, job.status, job.created_at);
+        db.prepare("INSERT INTO jobs (id, owner, type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(
+          job.id, owner, job.type, job.status, job.created_at, job.updated_at ?? job.created_at,
+        );
       },
       setJobStatus(id, status) {
-        db.prepare("UPDATE jobs SET status = ? WHERE id = ? AND owner = ?").run(status, id, owner);
+        db.prepare("UPDATE jobs SET status = ?, updated_at = ? WHERE id = ? AND owner = ?").run(status, now(), id, owner);
+      },
+      touchJob(id) {
+        db.prepare("UPDATE jobs SET updated_at = ? WHERE id = ? AND owner = ?").run(now(), id, owner);
       },
       getJobInfo(id) {
-        return db.prepare("SELECT id, type, status, created_at FROM jobs WHERE id = ? AND owner = ?").get(id, owner) as JobInfo | undefined;
+        const row = db.prepare("SELECT id, type, status, created_at, updated_at FROM jobs WHERE id = ? AND owner = ?").get(id, owner) as
+          | (JobInfo & { updated_at: string | null })
+          | undefined;
+        return row && { id: row.id, type: row.type, status: row.status, created_at: row.created_at, ...(row.updated_at && { updated_at: row.updated_at }) };
       },
       appendJobEvent(id, seq, event) {
         // Only into this owner's jobs.

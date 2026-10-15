@@ -66,6 +66,8 @@ export interface JobInfo {
   type: string;
   status: "running" | "done" | "error";
   created_at: string;
+  /** Heartbeat: a running job touches this while its process is alive (see startJob). Missing on older rows. */
+  updated_at?: string;
 }
 
 export interface JobEventRow {
@@ -89,6 +91,8 @@ export interface Store {
   getTrace<T = unknown>(id: string): Promise<T | undefined>;
   createJob(job: JobInfo): Promise<void>;
   setJobStatus(id: string, status: JobInfo["status"]): Promise<void>;
+  /** Records that the job's process is still alive (sets updated_at to now). */
+  touchJob(id: string): Promise<void>;
   getJobInfo(id: string): Promise<JobInfo | undefined>;
   appendJobEvent(id: string, seq: number, event: unknown): Promise<void>;
   /** Events with seq > afterSeq, in order. */
@@ -121,6 +125,7 @@ export interface Backend {
   getTrace(id: string): Awaitable<unknown | undefined>;
   createJob(job: JobInfo): Awaitable<void>;
   setJobStatus(id: string, status: JobInfo["status"]): Awaitable<void>;
+  touchJob(id: string): Awaitable<void>;
   getJobInfo(id: string): Awaitable<JobInfo | undefined>;
   appendJobEvent(id: string, seq: number, event: unknown): Awaitable<void>;
   jobEvents(id: string, afterSeq: number): Awaitable<JobEventRow[]>;
