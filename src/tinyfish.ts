@@ -5,6 +5,7 @@
 
 import { DEBUG, log, requireEnv } from "./env.js";
 import { jobSignal } from "./progress.js";
+import { recordAgentSteps, recordTinyFish } from "./usage.js";
 
 const SEARCH_URL = process.env.TINYFISH_SEARCH_URL ?? "https://api.search.tinyfish.ai";
 const FETCH_URL = process.env.TINYFISH_FETCH_URL ?? "https://api.fetch.tinyfish.ai";
@@ -20,18 +21,35 @@ export class TinyFishError extends Error {
   }
 }
 
-async function call<T>(label: string, url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    // Inside a job, requests stop when the job hits its time limit.
-    signal: init.signal ?? jobSignal(),
-    headers: {
-      "X-API-Key": requireEnv("TINYFISH_API_KEY"),
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-  });
-  const text = await res.text();
+/**
+ * Per-request deadlines. Without one a stalled connection blocks the run indefinitely. Agent runs themselves are
+ * long, but each start/poll/cancel request is quick; Fetch gets longer for multi-page batches.
+ */
+const TIMEOUT_MS: Record<string, number> = { search: 60_000, fetch: 180_000 };
+const DEFAULT_TIMEOUT_MS = 60_000;
+
+async function callOnce<T>(label: string, url: string, init: RequestInit = {}): Promise<T> {
+  const timeoutMs = TIMEOUT_MS[label] ?? DEFAULT_TIMEOUT_MS;
+  const deadline = AbortSignal.timeout(timeoutMs);
+  // Inside a job, requests also stop when the job hits its time limit.
+  const outer = init.signal ?? jobSignal();
+  let res: Response;
+  let text: string;
+  try {
+    res = await fetch(url, {
+      ...init,
+      signal: outer ? AbortSignal.any([outer, deadline]) : deadline,
+      headers: {
+        "X-API-Key": requireEnv("TINYFISH_API_KEY"),
+        "Content-Type": "application/json",
+        ...init.headers,
+      },
+    });
+    text = await res.text();
+  } catch (err) {
+    if (deadline.aborted && !outer?.aborted) throw new TinyFishError(`TinyFish ${label} timed out after ${timeoutMs / 1000}s`);
+    throw err;
+  }
   let body: unknown = text;
   try {
     body = JSON.parse(text);
@@ -44,6 +62,23 @@ async function call<T>(label: string, url: string, init: RequestInit = {}): Prom
     throw new TinyFishError(`TinyFish ${label} failed (${res.status}): ${msg}`, res.status, body);
   }
   return body as T;
+}
+
+/** Search and Fetch are free and idempotent, so network errors, timeouts, 429s and 5xx are retried. */
+const RETRIED = new Set(["search", "fetch"]);
+const CALL_RETRIES = 2;
+
+async function call<T>(label: string, url: string, init: RequestInit = {}): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await callOnce<T>(label, url, init);
+    } catch (err) {
+      const outer = init.signal ?? jobSignal();
+      if (!RETRIED.has(label) || attempt >= CALL_RETRIES || outer?.aborted || !transientCall(err)) throw err;
+      log(`  tinyfish ${label}: ${err instanceof Error ? err.message : err}; retrying`);
+      await sleep(2_000 * (attempt + 1), outer);
+    }
+  }
 }
 
 /** TinyFish expects absolute URLs; accept "example.com/pricing" for convenience. */
@@ -84,6 +119,7 @@ export interface SearchResponse {
 export function search(params: SearchParams): Promise<SearchResponse> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
+  recordTinyFish("search");
   return call("search", `${SEARCH_URL}/?${qs}`, { method: "GET" });
 }
 
@@ -113,11 +149,22 @@ export interface FetchResponse {
   errors: { url: string; error: string; status?: number }[];
 }
 
-export function fetchPages(params: FetchParams): Promise<FetchResponse> {
-  return call("fetch", `${FETCH_URL}/`, {
-    method: "POST",
-    body: JSON.stringify({ ...params, urls: params.urls.map(normalizeUrl) }),
-  });
+/** The Fetch API rejects requests with more URLs than this (400 "expected array to have <=10 items"). */
+const FETCH_MAX_URLS = 10;
+
+/** Longer URL lists are split into several requests, sent together, with results and errors merged in order. */
+export async function fetchPages(params: FetchParams): Promise<FetchResponse> {
+  const urls = params.urls.map(normalizeUrl);
+  const batches = Array.from({ length: Math.ceil(urls.length / FETCH_MAX_URLS) }, (_, i) =>
+    urls.slice(i * FETCH_MAX_URLS, (i + 1) * FETCH_MAX_URLS),
+  );
+  const responses = await Promise.all(
+    batches.map((batch) => {
+      recordTinyFish("fetch", batch.length);
+      return call<FetchResponse>("fetch", `${FETCH_URL}/`, { method: "POST", body: JSON.stringify({ ...params, urls: batch }) });
+    }),
+  );
+  return { results: responses.flatMap((r) => r.results), errors: responses.flatMap((r) => r.errors) };
 }
 
 // ---------- Agent ----------
@@ -144,19 +191,27 @@ export interface AgentRun {
 
 const TERMINAL: RunStatus[] = ["COMPLETED", "FAILED", "CANCELLED"];
 
+/** Gemini-specific keys that TinyFish rejects with a 400 ("output_schema field ... is not supported"). */
+const UNSUPPORTED_SCHEMA_KEYS = new Set(["additionalPropertiesSchema"]);
+
 /**
  * TinyFish requires standard JSON Schema ("object", "string", ...). LLMs sometimes write Google/OpenAPI-style
- * uppercase types ("OBJECT", "STRING"), which TinyFish rejects with a 400, so lowercase every `type`.
+ * uppercase types ("OBJECT", "STRING"), which TinyFish rejects with a 400, so lowercase every `type`. Gemini-only
+ * keywords such as "additionalPropertiesSchema" are dropped.
  */
 export function normalizeSchema(schema: unknown): unknown {
   if (Array.isArray(schema)) return schema.map(normalizeSchema);
   if (!schema || typeof schema !== "object") return schema;
   return Object.fromEntries(
-    Object.entries(schema).map(([k, v]) => {
+    Object.entries(schema).filter(([k]) => !UNSUPPORTED_SCHEMA_KEYS.has(k)).map(([k, v]) => {
       if (k === "type" && typeof v === "string") return [k, v.toLowerCase()];
       if (k === "type" && Array.isArray(v)) return [k, v.map((t) => (typeof t === "string" ? t.toLowerCase() : t))];
-      // Anything else, including a property named "type" (its value is a schema object), is recursed into.
-      // Property names under "properties" are user data, not schema keywords, but their values are schemas.
+      // Property names under "properties" are user data, not schema keywords (kept even if they look like one),
+      // but their values are schemas.
+      if (k === "properties" && v && typeof v === "object" && !Array.isArray(v)) {
+        return [k, Object.fromEntries(Object.entries(v).map(([name, sub]) => [name, normalizeSchema(sub)]))];
+      }
+      // Anything else is recursed into.
       return [k, normalizeSchema(v)];
     }),
   );
@@ -208,6 +263,7 @@ export async function runAgent(
     { method: "POST", body: JSON.stringify(body) },
   );
   if (!started.run_id) throw new TinyFishError(`TinyFish agent failed to start: ${started.error?.message}`);
+  recordTinyFish("agent");
 
   const runId = started.run_id;
   const deadline = Date.now() + timeoutMs;
@@ -230,7 +286,10 @@ export async function runAgent(
         lastSteps = run.steps?.length ?? 0;
         onProgress(run);
       }
-      if (TERMINAL.includes(run.status)) return run;
+      if (TERMINAL.includes(run.status)) {
+        recordAgentSteps(run.num_of_steps ?? run.steps?.length ?? 0);
+        return run;
+      }
       if (Date.now() > deadline) throw new TinyFishError(`TinyFish agent run ${runId} timed out after ${timeoutMs}ms`);
       await sleep(pollMs, signal);
     }

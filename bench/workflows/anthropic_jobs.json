@@ -1,0 +1,85 @@
+{
+  "name": "bench_anthropic_jobs",
+  "description": "List open roles on Anthropic's Greenhouse job board with title and location.",
+  "params": {
+    "job_board_url": {
+      "type": "string",
+      "description": "URL of the Greenhouse job board for Anthropic",
+      "required": true,
+      "default": "https://job-boards.greenhouse.io/anthropic"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_job_board",
+      "description": "Fetch Anthropic's job board page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.job_board_url}}"
+      ],
+      "purpose": "Get the listing of open roles at Anthropic"
+    },
+    {
+      "id": "extract_roles",
+      "description": "Extract 15 open roles with title and location from the job board page",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "roles"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "roles",
+          "value": 15
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_job_board.results.0.title}}\nURL: {{steps.fetch_job_board.results.0.final_url}}\n\n{{steps.fetch_job_board.results.0.text}}",
+      "instruction": "Extract up to 15 open roles listed on this page, providing the title and location for each role.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "location"
+              ]
+            }
+          }
+        },
+        "required": [
+          "roles"
+        ]
+      }
+    }
+  ],
+  "output": {
+    "roles": "{{steps.extract_roles.roles}}"
+  },
+  "source": {
+    "goal": "List 15 open roles on Anthropic's job board (job-boards.greenhouse.io/anthropic) with title and location.",
+    "trace_id": "2026-10-16T23-16-06-832Z-840eev",
+    "created_at": "2026-10-16T23:18:08.318Z"
+  },
+  "version": 1
+}

@@ -1,0 +1,53 @@
+# Reliability over time: replays every benchmark workflow against the live pages each day, lets Gemini repair the
+# ones that broke (a fix is kept only if its output passes the task's expectations again), and commits the results
+# to bench/results/, which the /bench page reads. Needs repo secrets TINYFISH_API_KEY and GEMINI_API_KEY.
+name: bench
+
+on:
+  schedule:
+    - cron: "17 14 * * *" # daily, 14:17 UTC
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "bench command"
+        type: choice
+        options: [daily, drift, compare]
+        default: daily
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bench
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run benchmark
+        env:
+          TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COMMAND: ${{ inputs.command || 'daily' }}
+        run: |
+          case "$COMMAND" in
+            daily) npm run -s bench -- daily --accept --concurrency=2 ;;
+            *) npm run -s bench -- "$COMMAND" --concurrency=2 ;;
+          esac
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bench/
+          git diff --cached --quiet && exit 0
+          git commit -m "bench: ${{ inputs.command || 'daily' }} results $(date -u +%F)"
+          git pull --rebase
+          git push

@@ -1,0 +1,90 @@
+{
+  "name": "bench_github_pricing",
+  "description": "Get the plans on github.com/pricing: each plan's name, price per user per month and key features.",
+  "params": {
+    "pricing_url": {
+      "type": "string",
+      "description": "URL of the GitHub pricing page",
+      "required": true,
+      "default": "https://github.com/pricing"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_pricing_page",
+      "description": "Fetch the GitHub pricing page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.pricing_url}}"
+      ],
+      "purpose": "Retrieve pricing plans, prices, and features from GitHub's pricing page"
+    },
+    {
+      "id": "extract_github_plans",
+      "description": "Extract the plans, prices, and features from the page text",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "plans"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "plans",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_pricing_page.results.0.title}}\nURL: {{steps.fetch_pricing_page.results.0.final_url}}\n\n{{steps.fetch_pricing_page.results.0.text}}",
+      "instruction": "Extract all pricing plans from the GitHub pricing page. For each plan, provide the name, the price per user per month (including currency symbol if applicable, e.g. '$ 0 USD', '$ 4 USD', '$ 21 USD'), and a list of key features.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "price_per_user_per_month": {
+                  "type": "string"
+                },
+                "key_features": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "price_per_user_per_month",
+                "key_features"
+              ]
+            }
+          }
+        },
+        "required": [
+          "plans"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_github_plans}}",
+  "source": {
+    "goal": "Get the plans on github.com/pricing: each plan's name, price per user per month and key features.",
+    "trace_id": "2026-10-16T23-13-50-744Z-ffhpfs",
+    "created_at": "2026-10-16T23:16:09.360Z"
+  },
+  "version": 1
+}

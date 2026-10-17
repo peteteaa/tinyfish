@@ -1,0 +1,192 @@
+{
+  "id": "2026-10-16T23-18-47-941Z-neh1la",
+  "kind": "learn",
+  "started_at": "2026-10-16T23:18:47.942Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "ba15427",
+  "options": {
+    "force": false,
+    "retryFailed": false,
+    "concurrency": 2
+  },
+  "trials": [
+    {
+      "kind": "learn",
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-16T23:18:47.989Z",
+      "duration_ms": 148203,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "3+ records with title|role|position|name, location",
+            "passed": true,
+            "detail": "largest list has 3 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 7,
+          "input": 48227,
+          "output": 979,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 7,
+              "input": 48227,
+              "output": 979,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 2,
+          "fetch_urls": 2,
+          "agent": 1,
+          "agent_steps": 3
+        },
+        "wait_ms": 71988.029984
+      },
+      "cost_usd": 0.0169156,
+      "tool_calls": 4,
+      "trace_id": "2026-10-16T23-18-47-989Z-xpbb9h",
+      "output": {
+        "roles": [
+          {
+            "title": "Forward Deployed Infrastructure Engineer, Internship - US Government",
+            "location": "New York, NY"
+          },
+          {
+            "location": "Washington, D.C.",
+            "title": "Forward Deployed Infrastructure Engineer, New Grad - US Government"
+          },
+          {
+            "title": "Forward Deployed Software Engineer, New Grad - UK Government",
+            "location": "London, United Kingdom"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "github_trending",
+      "category": "products",
+      "started_at": "2026-10-16T23:18:47.974Z",
+      "duration_ms": 179727,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "5+ records with name|repo",
+            "passed": true,
+            "detail": "largest list has 13 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 8,
+          "input": 24407,
+          "output": 1806,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 8,
+              "input": 24407,
+              "output": 1806,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 2,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 1,
+          "agent_steps": 3
+        },
+        "wait_ms": 71987.781605
+      },
+      "cost_usd": 0.011837099999999998,
+      "tool_calls": 5,
+      "trace_id": "2026-10-16T23-18-47-974Z-phzgap",
+      "output": {
+        "repositories": [
+          {
+            "repo": "anthropics/claude-plugins-official",
+            "description": "Official, Anthropic-managed directory of high quality Claude Code Plugins.",
+            "language": "Python"
+          },
+          {
+            "language": "Python",
+            "repo": "K-Dense-AI/scientific-agent-skills",
+            "description": "Turn any AI agent into an AI Scientist. The #1 Agent Skills library for science, used by 250,000+ scientists worldwide. 177 ready-to-use validated skills plus 100+ scientific databases covering biology, chemistry, medicine, and drug discovery. Compatible with Cursor, Claude Code, Codex, Pi, Antigravity, and the open Agent Skills standard."
+          },
+          {
+            "language": "JavaScript",
+            "repo": "affaan-m/ECC",
+            "description": "The agent harness performance optimization system. Skills, instincts, memory, security, and research-first development for Claude Code, Codex, Opencode, Cursor and beyond."
+          },
+          {
+            "description": "CLI-Anything: Making ALL Software Agent-Native -- CLI-Hub: https://clianything.cc/",
+            "repo": "HKUDS/CLI-Anything",
+            "language": "Python"
+          },
+          {
+            "language": "TypeScript",
+            "repo": "mksglu/context-mode",
+            "description": "Context window optimization for AI coding agents. Sandboxes tool output (98% reduction), persists session memory, and enforces routing across 17 platforms via MCP + hooks."
+          },
+          {
+            "repo": "ruvnet/ruflo",
+            "description": "The original agent harness. Deploy intelligent multi-player swarms, coordinate autonomous workflows, and build conversational AI systems. Features adaptive memory, self-learning intelligence, federation, vector RAG integration, and native Claude Code / Codex / Hermes and many more Integrated",
+            "language": "TypeScript"
+          },
+          {
+            "language": "Kotlin",
+            "description": "Official Android skills repository",
+            "repo": "android/skills"
+          },
+          {
+            "language": "Shell",
+            "repo": "obra/superpowers",
+            "description": "An agentic skills framework & software development methodology that works."
+          },
+          {
+            "language": "TypeScript",
+            "description": "Cursor plugin specification and official plugins",
+            "repo": "cursor/plugins"
+          },
+          {
+            "language": "Python",
+            "description": "VoiceStudio is the open-source, fully-local ElevenLabs alternative — voice cloning, voice design, video dubbing, dictation, transcription & audiobook creation in 646 languages.",
+            "repo": "debpalash/VoiceStudio"
+          },
+          {
+            "repo": "MadsLorentzen/ai-job-search",
+            "language": "Python",
+            "description": "The job search that runs on your machine. AI job application framework built on Claude Code: evaluate postings, tailor CVs, write cover letters, prep interviews. Fork it and own it."
+          },
+          {
+            "repo": "hmjz100/LinkSwift",
+            "language": "JavaScript",
+            "description": "一个基于 JavaScript 的网盘文件下载地址获取工具。基于【网盘直链下载助手】修改 ，支持 百度网盘 / 阿里云盘 / 中国移动云盘 / 天翼云盘 / 迅雷云盘 / 夸克网盘 / UC网盘 / 123云盘 八大网盘"
+          },
+          {
+            "language": "Rust",
+            "repo": "xerj-org/xerj",
+            "description": "XERJ is the new way for AI to search data. Its autoindex capability activates agents to know your data without the token waste of grep and sed. One command indexes code, docs, logs and PDFs for search, RAG, security audits and agent memory, using 40x fewer tokens than grep. Elasticsearch compatible, so existing clients just work."
+          }
+        ]
+      }
+    }
+  ],
+  "repairs": [],
+  "finished_at": "2026-10-16T23:21:47.704Z"
+}

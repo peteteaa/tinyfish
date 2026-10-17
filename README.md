@@ -94,6 +94,30 @@ To use a hosted user's workflows from the CLI, point it at the same database and
 Tools: list_workflows, run_workflow, learn_workflow, save_workflow, get_workflow.
 (The server also reads `.env` from the project root, so `env` can be omitted.)
 
+## Benchmark
+
+`npm run bench` measures whether Workflow Memory is actually faster and cheaper. 15 real tasks (pricing pages, product
+listings, job postings; `src/bench/tasks.ts`) each run two ways:
+
+- **raw**: the explorer solves the task from scratch (Gemini + TinyFish tools), as an agent would without memory.
+- **replay**: the workflow learned from it once (`bench/workflows/<task>.json`) runs deterministically.
+
+Both are graded by the same task expectations (strings that must appear, patterns, a minimum number of complete
+records; `src/bench/grade.ts`, no LLM judge), and `src/usage.ts` meters every Gemini token and TinyFish call in both.
+Latency leaves out time spent waiting on Gemini rate limits, which would otherwise penalize the mode that makes more
+calls.
+
+    npm run bench -- learn [--retry-failed]   # learn each task once (--retry-failed: relearn bad answers; cost is summed)
+    npm run bench -- compare --trials=3       # raw vs replay, interleaved
+    npm run bench -- drift                    # break each workflow (moved URL, redirect to home, renamed field), repair it
+    npm run bench -- daily [--accept]         # replay against the live pages, repair failures (--accept keeps fixes that pass)
+    npm run bench -- report [--json]          # summary of everything in bench/results/
+
+Results are JSON files in `bench/results/<kind>/` and the web app shows them at **/bench** (public, no sign-in).
+`.github/workflows/bench.yml` runs `daily --accept` every day and commits the results (set the `TINYFISH_API_KEY` and
+`GEMINI_API_KEY` repo secrets). Dollar figures are Gemini list prices (`src/usage.ts`, override with `WM_PRICES`);
+TinyFish agent runs cost credits and are counted separately.
+
 ## How it works
 
 **learn** = explore, then compile.
@@ -156,9 +180,12 @@ Run statuses: `ok`, `check_failed` (finished, but a check flagged it for repair)
     src/store.ts      storage facade: versioned workflows (with source), run history, traces, diff
     src/store/        SQLite (default, node:sqlite), JSON-file and Postgres backends, each scoped per owner; STORAGE=sqlite|files|postgres
     src/env.ts        .env loading, paths, config
+    src/usage.ts      meters Gemini tokens, TinyFish calls and rate-limit waits (used by the benchmark)
+    src/bench/        benchmark: tasks, grading, fault injection, harness, report, CLI
     src/cli.ts        CLI
     src/mcp.ts        MCP server (stdio)
     seeds/            hand-written workflows, copied into data/ as v1 on first use
+    bench/            benchmark workflows (learned once) and results
     web/              Next.js app (App Router, webpack; imports core through @core/*)
     test/             unit tests, live TinyFish test, store tests (both backends), web-boundary check
 

@@ -88,6 +88,11 @@ test("normalizeSchema lowercases types (TinyFish rejects OBJECT/STRING) without 
     normalizeSchema({ type: "OBJECT", properties: { TYPE: { type: "STRING" }, tags: { type: ["ARRAY", "NULL"], items: { type: "STRING" } } } }),
     { type: "object", properties: { TYPE: { type: "string" }, tags: { type: ["array", "null"], items: { type: "string" } } } },
   );
+  // Gemini-only keywords are dropped; a property that happens to share the name is kept.
+  assert.deepEqual(
+    normalizeSchema({ type: "object", additionalPropertiesSchema: { type: "string" }, properties: { additionalPropertiesSchema: { type: "STRING" } } }),
+    { type: "object", properties: { additionalPropertiesSchema: { type: "string" } } },
+  );
 });
 
 // Live: real TinyFish Fetch calls (free). Skipped, not faked, when no key is configured.

@@ -1,0 +1,88 @@
+{
+  "name": "bench_netlify_pricing",
+  "description": "Get the pricing plans on netlify.com/pricing: each plan's name, monthly price and key features.",
+  "params": {
+    "pricing_url": {
+      "type": "string",
+      "description": "URL of Netlify pricing page",
+      "required": true,
+      "default": "https://www.netlify.com/pricing/"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_pricing",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.pricing_url}}"
+      ],
+      "purpose": "Fetch the pricing page to get all plans, prices, and features"
+    },
+    {
+      "id": "extract_plans",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "plans"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "plans",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_pricing.results.0.title}}\nURL: {{steps.fetch_pricing.results.0.final_url}}\n\n{{steps.fetch_pricing.results.0.text}}",
+      "instruction": "Extract all pricing plans with their name, monthly_price, and key features based on the Netlify pricing page.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "monthly_price": {
+                  "type": "string"
+                },
+                "features": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "monthly_price",
+                "features"
+              ]
+            }
+          }
+        },
+        "required": [
+          "plans"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_plans}}",
+  "source": {
+    "goal": "Get the pricing plans on netlify.com/pricing: each plan's name, monthly price and key features.",
+    "trace_id": "2026-10-16T23-21-48-901Z-mkeeai",
+    "created_at": "2026-10-16T23:21:56.555Z"
+  },
+  "version": 1
+}

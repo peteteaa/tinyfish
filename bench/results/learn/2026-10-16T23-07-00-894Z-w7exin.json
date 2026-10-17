@@ -1,0 +1,225 @@
+{
+  "id": "2026-10-16T23-07-00-894Z-w7exin",
+  "kind": "learn",
+  "started_at": "2026-10-16T23:07:00.900Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "ba15427",
+  "options": {
+    "force": false,
+    "concurrency": 3
+  },
+  "trials": [
+    {
+      "kind": "learn",
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:07:00.921Z",
+      "duration_ms": 7475,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Hobby\", \"Pro\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 3 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 14841,
+          "output": 999,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 14841,
+              "output": 999,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0069498,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-07-00-921Z-j3xq6u",
+      "output": {
+        "plans": [
+          {
+            "key_features": [
+              "Automatic CI/CD",
+              "Web Application Firewall",
+              "Global, automated CDN",
+              "Fluid compute",
+              "DDoS Mitigation",
+              "Traffic & performance insights"
+            ],
+            "name": "Hobby",
+            "monthly_price": "$0/mo"
+          },
+          {
+            "monthly_price": "$20/mo",
+            "name": "Pro",
+            "key_features": [
+              "All Hobby features, plus:",
+              "$20 of included usage credit",
+              "Flat Rate CDN with traffic spike protection",
+              "Advanced spend management",
+              "Team collaboration & free viewer seats",
+              "Cold start prevention",
+              "Free custom domain"
+            ]
+          },
+          {
+            "monthly_price": "Custom",
+            "name": "Enterprise",
+            "key_features": [
+              "All Pro features, plus:",
+              "Guest & Team access controls",
+              "SCIM & Directory Sync",
+              "Managed WAF Rulesets",
+              "Multi-region compute & failover",
+              "99.99% SLA",
+              "Advanced Support"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "books_travel",
+      "category": "products",
+      "started_at": "2026-10-16T23:07:00.923Z",
+      "duration_ms": 79664,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Himalayas\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x11",
+            "passed": true,
+            "detail": "11 matches"
+          },
+          {
+            "expectation": "11+ records with title|name, price",
+            "passed": true,
+            "detail": "largest list has 11 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 10,
+          "input": 91623,
+          "output": 2680,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 10,
+              "input": 91623,
+              "output": 2680,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 5,
+          "fetch_urls": 14,
+          "agent": 1,
+          "agent_steps": 3
+        }
+      },
+      "cost_usd": 0.03418689999999999,
+      "tool_calls": 6,
+      "trace_id": "2026-10-16T23-07-00-923Z-04egk6",
+      "output": {
+        "books": [
+          {
+            "title": "It's Only the Himalayas",
+            "price": "£45.17",
+            "star_rating": "Three"
+          },
+          {
+            "price": "£49.43",
+            "star_rating": "One",
+            "title": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond"
+          },
+          {
+            "price": "£48.87",
+            "star_rating": "One",
+            "title": "See America: A Celebration of Our National Parks & Treasured Sites"
+          },
+          {
+            "title": "Vagabonding: An Uncommon Guide to the Art of Long-Term World Travel",
+            "star_rating": "Two",
+            "price": "£36.94"
+          },
+          {
+            "price": "£37.33",
+            "title": "Under the Tuscan Sun",
+            "star_rating": "Three"
+          },
+          {
+            "title": "A Summer In Europe",
+            "star_rating": "Five",
+            "price": "£44.34"
+          },
+          {
+            "price": "£30.54",
+            "star_rating": "One",
+            "title": "The Great Railway Bazaar"
+          },
+          {
+            "price": "£56.88",
+            "star_rating": "One",
+            "title": "A Year in Provence (Provence #1)"
+          },
+          {
+            "price": "£23.21",
+            "star_rating": "One",
+            "title": "The Road to Little Dribbling: Adventures of an American in Britain (Notes From a Small Island #2)"
+          },
+          {
+            "title": "Neither Here nor There: Travels in Europe",
+            "price": "£38.95",
+            "star_rating": "Five"
+          },
+          {
+            "title": "1,000 Places to See Before You Die",
+            "star_rating": "Three",
+            "price": "£26.08"
+          }
+        ]
+      }
+    }
+  ],
+  "repairs": [],
+  "finished_at": "2026-10-16T23:08:21.289Z"
+}

@@ -1,0 +1,1123 @@
+{
+  "id": "2026-10-16T23-13-50-723Z-hk921a",
+  "kind": "learn",
+  "started_at": "2026-10-16T23:13:50.724Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "ba15427",
+  "options": {
+    "force": false,
+    "concurrency": 3
+  },
+  "trials": [
+    {
+      "kind": "learn",
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:13:50.741Z",
+      "duration_ms": 15684,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Pro, Team, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 15855,
+          "output": 727,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 15855,
+              "output": 727,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.006574,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-13-50-742Z-oo14au",
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:14:06.449Z",
+      "duration_ms": 9891,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 20178,
+          "output": 1389,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 20178,
+              "output": 1389,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 2,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0095259,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-14-06-449Z-kl7x3j",
+      "output": {
+        "plans": [
+          "{\n  \"name\": \"Free\",\n  \"monthly_price\": \"$0 forever\",\n  \"key_features\": [\n    \"300 credit limit / month (with credit hard limit)\",\n    \"Deploy from AI, Git, or API\",\n    \"Private by default until you publish\",\n    \"Unlimited deploy previews\",\n    \"Build with Agent Runners\",\n    \"Custom domains with SSL\",\n    \"Functions & AI models\",\n    \"Netlify Database & Blob storage\",\n    \"Global CDN\"\n  ]\n},\n{\n  \"name\": \"Personal\",\n  \"monthly_price\": \"$9 / month\",\n  \"key_features\": [\n    \"Everything in Free, plus:\",\n    \"1,000 credits / month (with auto-recharge option)\",\n    \"Smart secret detection\",\n    \"1-day observability / analytics\",\n    \"Priority email support\"\n  ]\n},\n{\n  \"name\": \"Pro\",\n  \"monthly_price\": \"$20 / month (starts at, with unlimited members)\",\n  \"key_features\": [\n    \"Everything in Personal, plus:\",\n    \"Monthly credits from plan (choose tiers from 3,000 up to 20,000 credits/month)\",\n    \"Private organization repos\",\n    \"Shared environment variables\",\n    \"3+ concurrent builds included\",\n    \"30-day analytics & metrics\",\n    \"Audit logs (7-day history)\"\n  ]\n},\n{\n  \"name\": \"Enterprise\",\n  \"monthly_price\": \"Custom\",\n  \"key_features\": [\n    \"Everything in Pro, plus:\",\n    \"99.99% uptime SLA\",\n    \"Enterprise network tier\",\n    \"High-performance builds\",\n    \"SSO & SCIM\",\n    \"Log drains\",\n    \"Organization management\",\n    \"24/7 dedicated support\"\n  ]\n}]",
+          -1
+        ],
+        "notes": "Retrieved pricing plans, monthly prices, and key features directly from netlify.com/pricing and Netlify docs."
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "scrapeme_shop",
+      "category": "products",
+      "started_at": "2026-10-16T23:14:16.345Z",
+      "duration_ms": 8060,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x16",
+            "passed": false,
+            "detail": "15 matches"
+          },
+          {
+            "expectation": "16+ records with name|title, price",
+            "passed": false,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 12484,
+          "output": 1553,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 12484,
+              "output": 1553,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.007627699999999999,
+      "tool_calls": 1,
+      "trace_id": "2026-10-16T23-14-16-345Z-cci8a4",
+      "output": {
+        "products": [
+          {
+            "price": "£63.00",
+            "name": "Bulbasaur"
+          },
+          {
+            "price": "£87.00",
+            "name": "Ivysaur"
+          },
+          {
+            "name": "Venusaur",
+            "price": "£105.00"
+          },
+          {
+            "price": "£48.00",
+            "name": "Charmander"
+          },
+          {
+            "price": "£165.00",
+            "name": "Charmeleon"
+          },
+          {
+            "name": "Charizard",
+            "price": "£156.00"
+          },
+          {
+            "name": "Squirtle",
+            "price": "£130.00"
+          },
+          {
+            "name": "Wartortle",
+            "price": "£123.00"
+          },
+          {
+            "name": "Blastoise",
+            "price": "£76.00"
+          },
+          {
+            "price": "£73.00",
+            "name": "Caterpie"
+          },
+          {
+            "name": "Butterfree",
+            "price": "£162.00"
+          },
+          {
+            "name": "Weedle",
+            "price": "£25.00"
+          },
+          {
+            "price": "£148.00",
+            "name": "Kakuna"
+          },
+          {
+            "name": "Beedrill",
+            "price": "£168.00"
+          },
+          {
+            "price": "£159.00",
+            "name": "Pidgey"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "webscraper_laptops",
+      "category": "products",
+      "started_at": "2026-10-16T23:14:24.407Z",
+      "duration_ms": 5733,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "/\\$\\s?\\d+\\.\\d\\d/ x10",
+            "passed": false,
+            "detail": "7 matches"
+          },
+          {
+            "expectation": "10+ records with name|title|model, price",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 4,
+          "input": 15143,
+          "output": 1089,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 4,
+              "input": 15143,
+              "output": 1089,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0072654,
+      "tool_calls": 1,
+      "trace_id": "2026-10-16T23-14-24-407Z-kbtye6",
+      "output": {
+        "laptops": [
+          {
+            "price": "$295.99",
+            "number_of_reviews": 14,
+            "name": "Asus VivoBook..."
+          },
+          {
+            "name": "Prestigio Smar...",
+            "number_of_reviews": 8,
+            "price": "$299"
+          },
+          {
+            "price": "$299",
+            "number_of_reviews": 12,
+            "name": "Prestigio Smar..."
+          },
+          {
+            "price": "$306.99",
+            "number_of_reviews": 2,
+            "name": "Aspire E1-510"
+          },
+          {
+            "price": "$321.94",
+            "number_of_reviews": 5,
+            "name": "Lenovo V110-15..."
+          },
+          {
+            "number_of_reviews": 6,
+            "price": "$356.49",
+            "name": "Lenovo V110-15..."
+          },
+          {
+            "price": "$364.46",
+            "number_of_reviews": 12,
+            "name": "Hewlett Packar..."
+          },
+          {
+            "price": "$372.7",
+            "name": "Acer Aspire 3...",
+            "number_of_reviews": 2
+          },
+          {
+            "name": "Acer Aspire A3...",
+            "price": "$379.94",
+            "number_of_reviews": 0
+          },
+          {
+            "price": "$379.95",
+            "number_of_reviews": 9,
+            "name": "Acer Aspire ES..."
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "linear_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:13:50.743Z",
+      "duration_ms": 134518,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Basic\", \"Business\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 12036,
+          "output": 1005,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 12036,
+              "output": 1005,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.006123299999999999,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-13-50-743Z-67rb1y",
+      "output": {
+        "plans": [
+          {
+            "price": "$0",
+            "features": [
+              "Unlimited members",
+              "2 teams",
+              "250 issues",
+              "Agent platform",
+              "Linear Agent"
+            ],
+            "name": "Free"
+          },
+          {
+            "price": "$10 per user/month (billed yearly)",
+            "name": "Basic",
+            "features": [
+              "All Free features +",
+              "5 teams",
+              "Unlimited issues",
+              "Unlimited file uploads",
+              "Admin roles"
+            ]
+          },
+          {
+            "name": "Business",
+            "features": [
+              "All Basic features +",
+              "Unlimited teams",
+              "Private teams and guests",
+              "Triage Intelligence",
+              "Loops",
+              "Code Intelligence",
+              "Linear Insights",
+              "Linear Asks",
+              "Zendesk and Intercom integrations"
+            ],
+            "price": "$16 per user/month (billed yearly)"
+          },
+          {
+            "price": "Custom (annual billing only)",
+            "name": "Enterprise",
+            "features": [
+              "All Business features +",
+              "Invoice/PO billing",
+              "SAML and SCIM",
+              "Granular admin controls",
+              "Enterprise-grade security",
+              "Advanced org modeling",
+              "Migration & onboarding support",
+              "Priority support",
+              "Account management"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "hn_front_page",
+      "category": "products",
+      "started_at": "2026-10-16T23:14:30.143Z",
+      "duration_ms": 96686,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "10+ records with title|headline, point|score",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 14486,
+          "output": 1436,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 14486,
+              "output": 1436,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0079358,
+      "tool_calls": 1,
+      "trace_id": "2026-10-16T23-14-30-143Z-gjvf1v",
+      "output": {
+        "stories": [
+          {
+            "points": 1047,
+            "title": "Tesla Roadster",
+            "link": "https://www.tesla.com"
+          },
+          {
+            "link": "https://bfl.ai",
+            "title": "FLUX 3 Image Klein",
+            "points": 82
+          },
+          {
+            "link": "https://anthropic.com",
+            "points": 545,
+            "title": "Claude reveals ECDSA curve origins"
+          },
+          {
+            "title": "Llama.cpp on a jailbroken PS5: run any GGUF model natively on the console",
+            "link": "https://github.com/cobanov",
+            "points": 141
+          },
+          {
+            "points": 131,
+            "link": "https://arrl.org",
+            "title": "eBay Restricts Listings of Radio Equipment, but Exempts Ham-Band-Only Gear"
+          },
+          {
+            "link": "https://waymo.com",
+            "title": "Waymo in Toronto",
+            "points": 228
+          },
+          {
+            "points": 48,
+            "link": "https://jhu.edu",
+            "title": "Wireless magnetic millirobots that deliver medicine inside the beating heart"
+          },
+          {
+            "points": 77,
+            "title": "You could have invented transformers from memory",
+            "link": "https://alexwang.ai"
+          },
+          {
+            "link": "https://sandordargo.com",
+            "points": 46,
+            "title": "C++26: The New Debugging Header"
+          },
+          {
+            "points": 137,
+            "title": "I never authorized an integration that scans my secrets",
+            "link": "https://github.com/home-assistant"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "github_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:13:50.744Z",
+      "duration_ms": 138616,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Team\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 3 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 14568,
+          "output": 1254,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 14568,
+              "output": 1254,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0075054,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-13-50-744Z-ffhpfs",
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "key_features": [
+              "Unlimited public/private repositories",
+              "Dependabot security and version updates",
+              "2,000 CI/CD minutes/month (free for public repositories)",
+              "500MB of Packages storage (free for public repositories)",
+              "Issues & Projects",
+              "Community support"
+            ],
+            "price_per_user_per_month": "$ 0 USD"
+          },
+          {
+            "price_per_user_per_month": "$ 4 USD",
+            "name": "Team",
+            "key_features": [
+              "Everything included in Free, plus...",
+              "Access to GitHub Codespaces",
+              "Repository rules",
+              "Multiple reviewers in pull requests",
+              "Draft pull requests",
+              "Code owners",
+              "Required reviewers",
+              "Pages and Wikis",
+              "Environment deployment branches and secrets",
+              "3,000 CI/CD minutes/month (free for public repositories)",
+              "2GB of Packages storage (free for public repositories)",
+              "Web-based support"
+            ]
+          },
+          {
+            "key_features": [
+              "Everything included in Team, plus...",
+              "Data residency",
+              "Enterprise Managed Users",
+              "User provisioning through SCIM",
+              "Enterprise Account to centrally manage multiple organizations",
+              "Environment protection rules",
+              "Repository rules",
+              "Audit Log API",
+              "SOC1, SOC2, type 2 reports annually",
+              "FedRAMP Tailored Authority to Operate (ATO)",
+              "SAML single sign-on",
+              "Advanced auditing",
+              "GitHub Connect",
+              "50,000 CI/CD minutes/month (free for public repositories)",
+              "50GB of Packages storage (free for public repositories)"
+            ],
+            "name": "Enterprise",
+            "price_per_user_per_month": "$ 21 USD"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "openai_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-16T23:16:09.361Z",
+      "duration_ms": 59525,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": true,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 15106,
+          "output": 1073,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 15106,
+              "output": 1073,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0072143,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-16-09-361Z-lkvs1a",
+      "output": {
+        "roles": [
+          {
+            "location": "San Francisco",
+            "title": "Applied AI Engineer",
+            "team": "Applied AI"
+          },
+          {
+            "location": "San Francisco",
+            "team": "Applied AI",
+            "title": "Solutions Architect"
+          },
+          {
+            "team": "Applied AI",
+            "title": "Applied AI Researcher",
+            "location": "Seattle"
+          },
+          {
+            "location": "San Francisco",
+            "team": "Business Operations",
+            "title": "Business Operations Manager"
+          },
+          {
+            "title": "Strategy & Operations Specialist",
+            "team": "Business Operations",
+            "location": "Singapore"
+          },
+          {
+            "team": "Communications",
+            "title": "Communications Lead",
+            "location": "São Paulo"
+          },
+          {
+            "team": "Communications",
+            "title": "Communications Manager",
+            "location": "San Francisco"
+          },
+          {
+            "location": "San Francisco",
+            "team": "Consumer Devices",
+            "title": "Hardware Engineer"
+          },
+          {
+            "title": "Consumer Hardware Program Manager",
+            "location": "Singapore",
+            "team": "Consumer Devices"
+          },
+          {
+            "location": "San Francisco",
+            "team": "Core Product & Platform",
+            "title": "Software Engineer, Core Product"
+          },
+          {
+            "title": "Product Manager, Core Platform",
+            "location": "New York City",
+            "team": "Core Product & Platform"
+          },
+          {
+            "location": "New York City",
+            "team": "Corporate Security",
+            "title": "Security Engineer"
+          },
+          {
+            "title": "Data Scientist",
+            "team": "Data Science",
+            "location": "San Francisco"
+          },
+          {
+            "location": "San Francisco",
+            "team": "Executive Operations",
+            "title": "Executive Assistant"
+          },
+          {
+            "team": "Finance",
+            "title": "Financial Analyst",
+            "location": "San Francisco"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-16T23:16:06.832Z",
+      "duration_ms": 121486,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Anthropic\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": true,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 6,
+          "input": 37354,
+          "output": 1520,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 6,
+              "input": 37354,
+              "output": 1520,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 2,
+          "fetch_urls": 11,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.015006199999999999,
+      "tool_calls": 3,
+      "trace_id": "2026-10-16T23-16-06-832Z-840eev",
+      "output": {
+        "roles": [
+          {
+            "title": "Policy Advocacy - Political Research",
+            "location": "San Francisco, CA"
+          },
+          {
+            "title": "Applied AI Engineer",
+            "location": "Tokyo, Japan"
+          },
+          {
+            "title": "Model Performance Software Engineer, Claude Code",
+            "location": "San Francisco, CA | New York City, NY"
+          },
+          {
+            "location": "San Francisco, CA",
+            "title": "Risk & Insurance Specialist"
+          },
+          {
+            "title": "Manager, Customer Success - Commercial",
+            "location": "Boston, MA; San Francisco, CA | New York City, NY; Seattle, WA; Washington, DC"
+          },
+          {
+            "title": "Growth Account Executive, AI Native",
+            "location": "San Francisco, CA | New York City, NY"
+          },
+          {
+            "location": "San Francisco, CA",
+            "title": "Program Specialist, M&A"
+          },
+          {
+            "location": "San Francisco, CA | New York City, NY",
+            "title": "Data Engineer, Billing & Payments"
+          },
+          {
+            "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+            "title": "Anthropic Fellows Program, ML Systems & Reinforcement Learning"
+          },
+          {
+            "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA",
+            "title": "Anthropic Fellows Program, AI Safety & Security"
+          },
+          {
+            "location": "Remote-Friendly, United States; San Francisco, CA",
+            "title": "Anthropic STEM Fellow"
+          },
+          {
+            "location": "San Francisco, CA | New York City, NY",
+            "title": "Data Operations Manager, Human Data"
+          },
+          {
+            "title": "Engineering Manager, GPU (ML Accelerator)",
+            "location": "San Francisco, CA | New York City, NY | Seattle, WA"
+          },
+          {
+            "location": "London, UK",
+            "title": "[Expression of Interest] Research Engineer / Scientist, Alignment - London"
+          },
+          {
+            "location": "San Francisco, CA",
+            "title": "[Expression of Interest] Research Manager, Interpretability"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-16T23:18:08.321Z",
+      "duration_ms": 9123,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "10+ records with title|role|position|name, company",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 16753,
+          "output": 1547,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 16753,
+              "output": 1547,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.0088934,
+      "tool_calls": 1,
+      "trace_id": "2026-10-16T23-18-08-321Z-piupz6",
+      "output": {
+        "jobs": [
+          {
+            "company": "Sanctuary Computer",
+            "title": "Head of Technology"
+          },
+          {
+            "company": "Samsara",
+            "title": "Staff Software Engineer"
+          },
+          {
+            "title": "SI agent engineer",
+            "company": "Sticker Mule"
+          },
+          {
+            "company": "Medify",
+            "title": "Engineering Manager"
+          },
+          {
+            "company": "Toptal",
+            "title": "Applied AI Engineers for telecommunications company"
+          },
+          {
+            "title": "Apigee Engineer for Global Consumer Food Company",
+            "company": "Toptal"
+          },
+          {
+            "title": "Salesforce Developers with AI-Assisted Coding Experience",
+            "company": "Toptal"
+          },
+          {
+            "company": "Toptal",
+            "title": "Full-Stack E-commerce Developer with Sage X3 Experience"
+          },
+          {
+            "company": "Toggl",
+            "title": "Senior Full Stack"
+          },
+          {
+            "title": "Senior Independent AI Engineer / Architect",
+            "company": "A.Team"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "yc_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-16T23:18:17.447Z",
+      "duration_ms": 8909,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "5+ records with title|role|position|name, company|startup",
+            "passed": true,
+            "detail": "largest list has 20 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 14162,
+          "output": 1155,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 14162,
+              "output": 1155,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        }
+      },
+      "cost_usd": 0.007136099999999999,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-18-17-447Z-1onhor",
+      "output": {
+        "jobs": [
+          {
+            "role": "Staff Software Engineer,Product Innovation",
+            "company": "LineLeap (S19)"
+          },
+          {
+            "company": "Eventual (W22)",
+            "role": "Research Engineer,Multimodal Data"
+          },
+          {
+            "role": "System Integration & Test Engineer",
+            "company": "SiPhox Health (S20)"
+          },
+          {
+            "company": "Cofactr (W22)",
+            "role": "Senior Software Engineer"
+          },
+          {
+            "company": "Instrumentl (S16)",
+            "role": "Senior Full Stack Software Engineer"
+          },
+          {
+            "company": "GoGoGrandparent (S16)",
+            "role": "Backend Engineer"
+          },
+          {
+            "role": "Software Engineer,Backend",
+            "company": "Duffel (S18)"
+          },
+          {
+            "company": "Shepherd (W21)",
+            "role": "Staff Software Engineer"
+          },
+          {
+            "company": "Noloco (S21)",
+            "role": "Senior Software Engineer"
+          },
+          {
+            "company": "Polymath Robotics (S22)",
+            "role": "Autonomous Vehicle Test Specialist – San Francisco"
+          },
+          {
+            "role": "Software Engineering Intern",
+            "company": "Aviator (S21)"
+          },
+          {
+            "company": "Middesk (W19)",
+            "role": "Software Engineer"
+          },
+          {
+            "role": "Fullstack Engineer (NYC)",
+            "company": "BoldVoice (S21)"
+          },
+          {
+            "role": "Senior Software Engineer,Full Stack",
+            "company": "Postscript (W19)"
+          },
+          {
+            "company": "WarpBuild (S21)",
+            "role": "Senior Network Engineer"
+          },
+          {
+            "company": "Middleware (W23)",
+            "role": "Founding AI Engineer"
+          },
+          {
+            "company": "Cozmo AI (W22)",
+            "role": "Forward Deployed Engineer"
+          },
+          {
+            "role": "Senior Software Engineer",
+            "company": "Tank Payments (S22)"
+          },
+          {
+            "role": "Mechanical Engineer - Robotics",
+            "company": "Nextera Robotics | DIDGE.ai (S20)"
+          },
+          {
+            "company": "Mach9 (S21)",
+            "role": "Solutions Engineer"
+          }
+        ]
+      }
+    }
+  ],
+  "repairs": []
+}

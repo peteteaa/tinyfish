@@ -1,0 +1,113 @@
+{
+  "name": "bench_books_travel",
+  "description": "List every book in the Travel category of books.toscrape.com with its title, price and star rating.",
+  "params": {
+    "category_url": {
+      "type": "string",
+      "description": "URL of the Travel category page",
+      "required": true,
+      "default": "http://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_category",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.category_url}}"
+      ],
+      "purpose": "Get the category page and list of product links",
+      "links": true
+    },
+    {
+      "id": "extract_book_urls",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "urls"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "urls",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_category.results.0.title}}\nURL: {{steps.fetch_category.results.0.final_url}}\n\nLinks:\n{{steps.fetch_category.results.0.links}}",
+      "instruction": "Extract all book detail page URLs from the links list that belong to the catalogue (exclude category pages and main index). Return them as an array of strings.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "fetch_books",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": "{{steps.extract_book_urls.urls}}",
+      "purpose": "Fetch all individual book pages"
+    },
+    {
+      "id": "extract_book_details",
+      "forEach": "{{steps.fetch_books.results}}",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "title",
+            "price",
+            "star_rating"
+          ]
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{item.title}}\nURL: {{item.final_url}}\n\n{{item.text}}",
+      "instruction": "Extract the book's title, price, and star rating from the page text. Star rating should be one of 'One', 'Two', 'Three', 'Four', or 'Five'.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string"
+          },
+          "star_rating": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "output": {
+    "books": "{{steps.extract_book_details}}"
+  },
+  "source": {
+    "goal": "List every book in the Travel category of books.toscrape.com (books.toscrape.com/catalogue/category/books/travel_2/index.html) with its title, price and star rating.",
+    "trace_id": "2026-10-16T23-07-00-923Z-04egk6",
+    "created_at": "2026-10-16T23:08:20.587Z"
+  },
+  "version": 1
+}

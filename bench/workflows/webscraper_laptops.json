@@ -1,0 +1,79 @@
+{
+  "name": "bench_webscraper_laptops",
+  "description": "List the first 10 laptops from webscraper.io e-commerce test site with their name, price and number of reviews.",
+  "params": {
+    "url": {
+      "type": "string",
+      "description": "URL of the laptops category page",
+      "required": true,
+      "default": "https://webscraper.io/test-sites/e-commerce/allinone/computers/laptops"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_laptops_page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": "{{params.url}}",
+      "purpose": "Fetch the laptop category page containing product listings, prices, and reviews"
+    },
+    {
+      "id": "extract_laptops",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "laptops",
+          "value": 10
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_laptops_page.results.0.title}}\nURL: {{steps.fetch_laptops_page.results.0.final_url}}\n\n{{steps.fetch_laptops_page.results.0.text}}",
+      "instruction": "Extract the first 10 laptops listed on the page. For each laptop, provide its name, price, and number of reviews as an integer.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "laptops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "string"
+                },
+                "number_of_reviews": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "price",
+                "number_of_reviews"
+              ]
+            }
+          }
+        },
+        "required": [
+          "laptops"
+        ]
+      }
+    }
+  ],
+  "output": {
+    "laptops": "{{steps.extract_laptops.laptops}}"
+  },
+  "source": {
+    "goal": "List the first 10 laptops on webscraper.io/test-sites/e-commerce/allinone/computers/laptops with each laptop's name, price and number of reviews.",
+    "trace_id": "2026-10-16T23-14-24-407Z-kbtye6",
+    "created_at": "2026-10-16T23:14:30.140Z"
+  },
+  "version": 1
+}

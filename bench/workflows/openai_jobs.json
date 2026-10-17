@@ -1,0 +1,79 @@
+{
+  "name": "bench_openai_jobs",
+  "description": "List 15 open roles on OpenAI's job board with title, team and location.",
+  "params": {
+    "job_board_url": {
+      "type": "string",
+      "description": "URL of OpenAI's Ashby job board",
+      "required": true,
+      "default": "https://jobs.ashbyhq.com/openai"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_job_board",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.job_board_url}}"
+      ],
+      "purpose": "Fetch OpenAI job board page content"
+    },
+    {
+      "id": "extract_roles",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "roles",
+          "value": 15
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_job_board.results.0.title}}\nURL: {{steps.fetch_job_board.results.0.final_url}}\n\n{{steps.fetch_job_board.results.0.text}}",
+      "instruction": "Extract 15 open roles from the provided job board text. For each role, provide the title, team, and location.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "team": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "team",
+                "location"
+              ]
+            }
+          }
+        },
+        "required": [
+          "roles"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_roles}}",
+  "source": {
+    "goal": "List 15 open roles on OpenAI's job board (jobs.ashbyhq.com/openai) with title, team and location.",
+    "trace_id": "2026-10-16T23-16-09-361Z-lkvs1a",
+    "created_at": "2026-10-16T23:17:08.886Z"
+  },
+  "version": 1
+}

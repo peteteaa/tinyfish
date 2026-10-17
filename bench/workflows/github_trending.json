@@ -1,0 +1,77 @@
+{
+  "name": "bench_github_trending",
+  "description": "List the repositories on github.com/trending with owner/name, description, and language.",
+  "params": {
+    "trending_url": {
+      "type": "string",
+      "description": "URL for GitHub trending repositories",
+      "required": true,
+      "default": "https://github.com/trending"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_trending",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": "{{params.trending_url}}",
+      "purpose": "Fetch the GitHub trending repositories page"
+    },
+    {
+      "id": "extract_repositories",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "repositories",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_trending.results.0.title}}\nURL: {{steps.fetch_trending.results.0.final_url}}\n\n{{steps.fetch_trending.results.0.text}}",
+      "instruction": "Extract the list of trending repositories from the text. For each repository, extract the owner/name (repo), description, and programming language.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "repositories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "repo": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "repo",
+                "description",
+                "language"
+              ]
+            }
+          }
+        },
+        "required": [
+          "repositories"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_repositories}}",
+  "source": {
+    "goal": "List the repositories on github.com/trending today with each repo's owner/name, description and language.",
+    "trace_id": "2026-10-16T23-18-47-974Z-phzgap",
+    "created_at": "2026-10-16T23:21:47.701Z"
+  },
+  "version": 1
+}

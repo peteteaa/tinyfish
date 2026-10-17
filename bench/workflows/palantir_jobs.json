@@ -1,0 +1,76 @@
+{
+  "name": "bench_palantir_jobs",
+  "description": "List the open roles shown on Palantir's Lever job board with title and location.",
+  "params": {
+    "job_board_url": {
+      "type": "string",
+      "description": "URL of the Lever job board",
+      "required": true,
+      "default": "https://jobs.lever.co/palantir"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_job_board",
+      "description": "Fetch the Palantir Lever job board page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": "{{params.job_board_url}}",
+      "purpose": "Fetch Palantir Lever job board main page to extract roles"
+    },
+    {
+      "id": "extract_roles",
+      "description": "Extract job roles with title and location from the job board markdown",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "roles"
+          ]
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_job_board.results.0.title}}\nURL: {{steps.fetch_job_board.results.0.final_url}}\n\n{{steps.fetch_job_board.results.0.text}}",
+      "instruction": "Extract all open roles listed on this job board page, including their title and location. Return an array of roles.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "location"
+              ]
+            }
+          }
+        },
+        "required": [
+          "roles"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_roles}}",
+  "source": {
+    "goal": "List the open roles shown on Palantir's Lever job board (jobs.lever.co/palantir) with title and location.",
+    "trace_id": "2026-10-16T23-18-47-989Z-xpbb9h",
+    "created_at": "2026-10-16T23:21:16.192Z"
+  },
+  "version": 1
+}

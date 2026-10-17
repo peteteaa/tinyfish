@@ -15,7 +15,8 @@
     "test": "tsx --test test/*.test.ts",
     "web:dev": "npm run dev -w web",
     "web:build": "npm run build -w web",
-    "web:start": "npm run start -w web"
+    "web:start": "npm run start -w web",
+    "bench": "tsx src/bench/cli.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

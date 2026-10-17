@@ -1,0 +1,77 @@
+{
+  "name": "bench_yc_jobs",
+  "description": "List the startup jobs featured on Y Combinator's job board with role and company.",
+  "params": {
+    "jobs_url": {
+      "type": "string",
+      "description": "URL of the Y Combinator jobs board",
+      "required": true,
+      "default": "https://www.ycombinator.com/jobs"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_jobs_page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.jobs_url}}"
+      ],
+      "purpose": "Fetch the Y Combinator jobs board page"
+    },
+    {
+      "id": "extract_jobs",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "jobs",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_jobs_page.results.0.title}}\nURL: {{steps.fetch_jobs_page.results.0.final_url}}\n\n{{steps.fetch_jobs_page.results.0.text}}",
+      "instruction": "Extract the list of startup jobs featured on this page, including the role and company name for each job.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "company": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "role",
+                "company"
+              ]
+            }
+          }
+        },
+        "required": [
+          "jobs"
+        ]
+      }
+    }
+  ],
+  "output": {
+    "jobs": "{{steps.extract_jobs.jobs}}"
+  },
+  "source": {
+    "goal": "List the startup jobs featured on Y Combinator's job board (ycombinator.com/jobs) with role and company.",
+    "trace_id": "2026-10-16T23-18-17-447Z-1onhor",
+    "created_at": "2026-10-16T23:18:26.356Z"
+  },
+  "version": 1
+}

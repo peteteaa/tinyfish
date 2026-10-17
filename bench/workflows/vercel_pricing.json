@@ -1,0 +1,90 @@
+{
+  "name": "bench_vercel_pricing",
+  "description": "Fetch Vercel pricing page and extract plans with monthly price and key features.",
+  "params": {
+    "pricing_url": {
+      "type": "string",
+      "description": "Vercel pricing page URL",
+      "required": true,
+      "default": "https://vercel.com/pricing"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_pricing",
+      "description": "Fetch the Vercel pricing page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.pricing_url}}"
+      ],
+      "purpose": "Get the pricing details and features for all plans"
+    },
+    {
+      "id": "extract_pricing_plans",
+      "description": "Extract plan names, monthly prices, and key features",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "plans"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "plans",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_pricing.results.0.title}}\nURL: {{steps.fetch_pricing.results.0.final_url}}\n\n{{steps.fetch_pricing.results.0.text}}",
+      "instruction": "Extract all pricing plans from the page. For each plan, provide the name, monthly price, and a list of key features.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "monthly_price": {
+                  "type": "string"
+                },
+                "key_features": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "monthly_price",
+                "key_features"
+              ]
+            }
+          }
+        },
+        "required": [
+          "plans"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_pricing_plans}}",
+  "source": {
+    "goal": "Get the pricing plans on vercel.com/pricing: each plan's name, monthly price and key features.",
+    "trace_id": "2026-10-16T23-07-00-921Z-j3xq6u",
+    "created_at": "2026-10-16T23:07:08.396Z"
+  },
+  "version": 1
+}

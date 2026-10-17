@@ -4,6 +4,7 @@
 import { GoogleGenAI, type Content, type GenerateContentResponse } from "@google/genai";
 import { log, requireEnv } from "./env.js";
 import { notice } from "./progress.js";
+import { recordGemini, recordWait } from "./usage.js";
 
 // Calls fall back down WM_FALLBACK_MODELS when a model's quota is used up, it's overloaded, or it's been retired.
 // Each model has its own free-tier quota, so pointing WM_MODEL and WM_FAST_MODEL at different models spreads the load.
@@ -33,7 +34,7 @@ export function isTransientGeminiError(err: unknown): boolean {
   const status = (err as { status?: number } | null)?.status;
   if (status === 429 || (typeof status === "number" && status >= 500)) return true;
   const msg = err instanceof Error ? err.message : String(err);
-  return /\b(429|500|502|503|504)\b|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded|ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg);
+  return /\b(429|500|502|503|504)\b|RESOURCE_EXHAUSTED|UNAVAILABLE|overloaded|ECONNRESET|ETIMEDOUT|timed out|fetch failed/i.test(msg);
 }
 
 /** The server's suggested wait in ms ("retryDelay":"40s" / "retry in 40.7s"), if it gave one. */
@@ -72,11 +73,20 @@ function modelUnavailable(err: unknown): boolean {
 }
 
 /** One model: retries short rate limits and brief overloads; throws the raw error otherwise. */
+/**
+ * A request that hasn't answered by now is treated as a transient failure and retried. Without a deadline one stalled
+ * connection blocks a run indefinitely (seen in the benchmark: a single call hanging for ~18 minutes).
+ */
+const REQUEST_TIMEOUT_MS = Number(process.env.WM_GEMINI_TIMEOUT_MS ?? 180_000);
+
 async function generateOnce(params: Parameters<GoogleGenAI["models"]["generateContent"]>[0]): Promise<GenerateContentResponse> {
   for (let attempt = 0; ; attempt++) {
+    const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const signal = params.config?.abortSignal ? AbortSignal.any([params.config.abortSignal, deadline]) : deadline;
     try {
-      return await gemini().models.generateContent(params);
-    } catch (err) {
+      return await gemini().models.generateContent({ ...params, config: { ...params.config, abortSignal: signal } });
+    } catch (caught) {
+      const err = deadline.aborted ? new Error(`Gemini ${params.model} timed out after ${REQUEST_TIMEOUT_MS / 1000}s`) : caught;
       if (quotaExhausted(err)) throw err;
       const overloaded = modelUnavailable(err);
       if (!isTransientGeminiError(err) && !overloaded) throw err;
@@ -85,6 +95,7 @@ async function generateOnce(params: Parameters<GoogleGenAI["models"]["generateCo
       const status = (err as { status?: number }).status;
       log(`  gemini ${params.model}: ${status ?? "transient error"}, retrying in ${Math.round(wait / 1000)}s`);
       notice(`Gemini (${params.model}) is ${status === 429 ? "rate limited" : "busy"}; retrying in ${Math.round(wait / 1000)}s.`);
+      recordWait(wait);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
@@ -104,6 +115,7 @@ export async function generate(params: Parameters<GoogleGenAI["models"]["generat
     if ((unavailableUntil.get(model) ?? 0) > Date.now()) continue;
     try {
       const response = await generateOnce({ ...params, model });
+      recordGemini(response.modelVersion ?? model, response.usageMetadata);
       if (model !== params.model) log(`  gemini: ${params.model} unavailable, answered by ${model}`);
       return response;
     } catch (err) {

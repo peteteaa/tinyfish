@@ -1,0 +1,77 @@
+{
+  "name": "bench_scrapeme_shop",
+  "version": 1,
+  "description": "List the products on the first page of scrapeme.live/shop with each product's name and price.",
+  "params": {
+    "shop_url": {
+      "type": "string",
+      "description": "The shop URL to scrape",
+      "required": true,
+      "default": "https://scrapeme.live/shop/"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_shop",
+      "description": "Fetch the shop page markdown",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.shop_url}}"
+      ],
+      "purpose": "Fetch product catalog page"
+    },
+    {
+      "id": "extract_products",
+      "description": "Extract products and prices from the shop page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "products",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_shop.results.0.title}}\nURL: {{steps.fetch_shop.results.0.final_url}}\n\n{{steps.fetch_shop.results.0.text}}",
+      "instruction": "Extract all the products listed on the page with their respective names and prices.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "price"
+              ]
+            }
+          }
+        },
+        "required": [
+          "products"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_products}}",
+  "source": {
+    "goal": "List the products on the first page of scrapeme.live/shop with each product's name and price.",
+    "trace_id": "2026-10-16T23-21-56-562Z-yn1i7z",
+    "created_at": "2026-10-16T23:23:04.517Z"
+  }
+}

@@ -19,7 +19,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ g
           <h1>workflow-memory</h1>
           <ThemeToggle />
         </header>
-        <p>Describe a web task once. Rerun it as a tested workflow.</p>
+        <p>Describe a web task once. Rerun it as a tested workflow. <Link href="/bench">How much faster and cheaper?</Link></p>
         <Composer initialGoal={initialGoal ?? ""} />
         <section className="panel" aria-labelledby="saved">
           <h2 id="saved">Saved workflows</h2>

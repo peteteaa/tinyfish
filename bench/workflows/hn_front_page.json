@@ -1,0 +1,76 @@
+{
+  "name": "bench_hn_front_page",
+  "description": "List the top stories on the Hacker News front page with title, link and points.",
+  "params": {
+    "url": {
+      "type": "string",
+      "description": "Hacker News front page URL",
+      "required": true,
+      "default": "https://news.ycombinator.com/"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_hn",
+      "checks": [
+        {
+          "type": "not_empty",
+          "path": "results.0.text"
+        }
+      ],
+      "type": "fetch",
+      "urls": "{{params.url}}",
+      "purpose": "Fetch Hacker {{params.url}} front page markdown"
+    },
+    {
+      "id": "extract_stories",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "stories",
+          "value": 10
+        }
+      ],
+      "type": "extract",
+      "input": "{{steps.fetch_hn.results.0.text}}",
+      "instruction": "Extract the top 10 stories from the Hacker {{params.url}} front page markdown. For each story, provide the title, the external link URL, and the points as a number.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "stories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "link": {
+                  "type": "string"
+                },
+                "points": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "title",
+                "link",
+                "points"
+              ]
+            }
+          }
+        },
+        "required": [
+          "stories"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_stories}}",
+  "source": {
+    "goal": "List the top 10 stories on the Hacker News front page (news.ycombinator.com) with title, link and points.",
+    "trace_id": "2026-10-16T23-14-30-143Z-gjvf1v",
+    "created_at": "2026-10-16T23:16:06.829Z"
+  },
+  "version": 1
+}

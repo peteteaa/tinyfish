@@ -1,0 +1,102 @@
+{
+  "name": "bench_supabase_pricing",
+  "description": "Get the pricing plans on supabase.com/pricing: each plan's name, monthly price and key features.",
+  "params": {
+    "pricing_url": {
+      "type": "string",
+      "description": "URL of the Supabase pricing page",
+      "required": true,
+      "default": "https://supabase.com/pricing"
+    }
+  },
+  "steps": [
+    {
+      "id": "fetch_pricing_page",
+      "description": "Fetch the Supabase pricing page",
+      "checks": [
+        {
+          "type": "min_items",
+          "path": "results",
+          "value": 1
+        }
+      ],
+      "type": "fetch",
+      "urls": [
+        "{{params.pricing_url}}"
+      ],
+      "purpose": "Fetch pricing page content"
+    },
+    {
+      "id": "extract_plans",
+      "description": "Extract pricing plans, monthly prices, and key features grouped by category",
+      "checks": [
+        {
+          "type": "required_keys",
+          "keys": [
+            "plans"
+          ]
+        },
+        {
+          "type": "min_items",
+          "path": "plans",
+          "value": 1
+        }
+      ],
+      "type": "extract",
+      "input": "Title: {{steps.fetch_pricing_page.results.0.title}}\nURL: {{steps.fetch_pricing_page.results.0.final_url}}\n\n{{steps.fetch_pricing_page.results.0.text}}",
+      "instruction": "Extract all pricing plans from the page (e.g. Free, Pro, Team, Enterprise). For each plan, provide its name, monthly_price (e.g. '$0', 'From $25', 'Custom'), and key features grouped by category.",
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "monthly_price": {
+                  "type": "string"
+                },
+                "features": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string"
+                      },
+                      "detail": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "category",
+                      "detail"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "monthly_price",
+                "features"
+              ]
+            }
+          }
+        },
+        "required": [
+          "plans"
+        ]
+      }
+    }
+  ],
+  "output": "{{steps.extract_plans}}",
+  "source": {
+    "goal": "Get the pricing plans on supabase.com/pricing: each plan's name, monthly price and key features.",
+    "trace_id": "2026-10-16T23-21-48-880Z-qp6itw",
+    "created_at": "2026-10-16T23:21:56.894Z"
+  },
+  "version": 1
+}

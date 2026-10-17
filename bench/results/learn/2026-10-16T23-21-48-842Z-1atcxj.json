@@ -1,0 +1,394 @@
+{
+  "id": "2026-10-16T23-21-48-842Z-1atcxj",
+  "kind": "learn",
+  "started_at": "2026-10-16T23:21:48.843Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "ba15427",
+  "options": {
+    "force": false,
+    "retryFailed": true,
+    "concurrency": 2
+  },
+  "trials": [
+    {
+      "kind": "learn",
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:21:48.901Z",
+      "duration_ms": 7654,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 20102,
+          "output": 1173,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 20102,
+              "output": 1173,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 2,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.008963099999999998,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-21-48-901Z-mkeeai",
+      "output": {
+        "plans": [
+          {
+            "monthly_price": "$0 forever",
+            "name": "Free",
+            "features": [
+              "Build and deploy free forever",
+              "Deploy from AI, Git, or API",
+              "Private by default until published",
+              "Unlimited deploy previews",
+              "Build with Agent Runners",
+              "Custom domains with SSL",
+              "Functions & AI models",
+              "Store structured data with Netlify Database",
+              "Store files & images with Blob storage",
+              "Traffic rules & basic rate limiting",
+              "Global CDN",
+              "300 credit limit per month"
+            ]
+          },
+          {
+            "monthly_price": "$9 /month",
+            "features": [
+              "Everything in Free, plus:",
+              "Smart secret detection",
+              "1-day observability & analytics retention",
+              "Priority email support",
+              "1,000 credits per month"
+            ],
+            "name": "Personal"
+          },
+          {
+            "monthly_price": "Starts at $20 /month",
+            "name": "Pro",
+            "features": [
+              "Everything in Personal, plus:",
+              "Unlimited members",
+              "Private organization repos",
+              "Shared env variables",
+              "3+ concurrent builds",
+              "30-day analytics & metrics",
+              "Monthly credits starting at 3,000 up to 20,000 credits per month (configurable tiers)"
+            ]
+          },
+          {
+            "features": [
+              "Everything in Pro, plus:",
+              "99.99% SLA",
+              "Enterprise network tier",
+              "High-performance builds",
+              "SSO & SCIM",
+              "Log drains",
+              "Organization management",
+              "24/7 dedicated support"
+            ],
+            "monthly_price": "Custom",
+            "name": "Enterprise"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-16T23:21:48.879Z",
+      "duration_ms": 8015,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "4 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 5,
+          "input": 13806,
+          "output": 1498,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 5,
+              "input": 13806,
+              "output": 1498,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 1,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0078868,
+      "tool_calls": 2,
+      "trace_id": "2026-10-16T23-21-48-880Z-qp6itw",
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "monthly_price": "$0",
+            "features": [
+              {
+                "category": "Database",
+                "detail": "Dedicated Postgres Database, Unlimited API requests, 500 MB database size per project, 5 GB egress, Paused after 1 week of inactivity"
+              },
+              {
+                "detail": "Unlimited users, 50,000 monthly active users (MAUs), Anonymous Sign-ins, Social OAuth providers, OAuth 2.1 Server, Custom SMTP server, Basic Multi-Factor Auth, 1 hour auth audit logs",
+                "category": "Auth & Security"
+              },
+              {
+                "category": "Storage",
+                "detail": "1 GB storage, 5 GB cached egress, Custom access controls, 50 MB max file upload size, Basic CDN"
+              },
+              {
+                "category": "Realtime & Functions",
+                "detail": "Postgres Changes, 200 concurrent peak connections, 2 Million messages per month, 500,000 Edge Function invocations"
+              },
+              {
+                "category": "Support",
+                "detail": "Community support"
+              }
+            ]
+          },
+          {
+            "name": "Pro",
+            "features": [
+              {
+                "category": "Database",
+                "detail": "Everything in Free, plus: 8 GB disk size per project, Advanced disk config, 7-day automatic backups, Never paused, 250 GB egress, 250 GB cached egress"
+              },
+              {
+                "detail": "100,000 monthly active users (MAUs), Remove Supabase branding from emails, 7-day auth audit logs, Leaked password protection, Single session per user, Session timeouts",
+                "category": "Auth & Security"
+              },
+              {
+                "detail": "100 GB storage, Smart CDN, 500 GB max file upload size, 100 origin images included",
+                "category": "Storage"
+              },
+              {
+                "category": "Support",
+                "detail": "Email support, $10/mo in compute credits included"
+              }
+            ],
+            "monthly_price": "From $25"
+          },
+          {
+            "features": [
+              {
+                "category": "Compliance & Security",
+                "detail": "SOC2 & ISO 27001, HIPAA available as paid add-on"
+              },
+              {
+                "detail": "Project-scoped and read-only access, SSO for Supabase Dashboard",
+                "category": "Access & Collaboration"
+              },
+              {
+                "category": "Backups & Logs",
+                "detail": "Daily backups stored for 14 days, 28-day log retention"
+              },
+              {
+                "detail": "Priority email support & SLAs",
+                "category": "Support"
+              }
+            ],
+            "name": "Team",
+            "monthly_price": "From $599"
+          },
+          {
+            "name": "Enterprise",
+            "monthly_price": "Custom",
+            "features": [
+              {
+                "category": "Support & Account",
+                "detail": "Technical Account Management, 24x7x365 premium enterprise support, Private Slack channel"
+              },
+              {
+                "category": "Infrastructure & Security",
+                "detail": "Uptime SLAs, Supports AWS PrivateLink, Custom Security Questionnaires"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "learn",
+      "task": "scrapeme_shop",
+      "category": "products",
+      "started_at": "2026-10-16T23:21:56.562Z",
+      "duration_ms": 67955,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x16",
+            "passed": false,
+            "detail": "15 matches"
+          },
+          {
+            "expectation": "16+ records with name|title, price",
+            "passed": false,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "usage": {
+        "gemini": {
+          "calls": 4,
+          "input": 7253,
+          "output": 992,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 4,
+              "input": 7253,
+              "output": 992,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 62835.663499
+      },
+      "cost_usd": 0.004655899999999999,
+      "tool_calls": 1,
+      "trace_id": "2026-10-16T23-21-56-562Z-yn1i7z",
+      "output": {
+        "products": [
+          {
+            "price": "£63.00",
+            "name": "Bulbasaur"
+          },
+          {
+            "price": "£87.00",
+            "name": "Ivysaur"
+          },
+          {
+            "price": "£105.00",
+            "name": "Venusaur"
+          },
+          {
+            "price": "£48.00",
+            "name": "Charmander"
+          },
+          {
+            "price": "£165.00",
+            "name": "Charmeleon"
+          },
+          {
+            "name": "Charizard",
+            "price": "£156.00"
+          },
+          {
+            "price": "£130.00",
+            "name": "Squirtle"
+          },
+          {
+            "price": "£123.00",
+            "name": "Wartortle"
+          },
+          {
+            "price": "£76.00",
+            "name": "Blastoise"
+          },
+          {
+            "price": "£73.00",
+            "name": "Caterpie"
+          },
+          {
+            "price": "£162.00",
+            "name": "Butterfree"
+          },
+          {
+            "price": "£25.00",
+            "name": "Weedle"
+          },
+          {
+            "price": "£148.00",
+            "name": "Kakuna"
+          },
+          {
+            "name": "Beedrill",
+            "price": "£168.00"
+          },
+          {
+            "price": "£159.00",
+            "name": "Pidgey"
+          }
+        ]
+      }
+    }
+  ],
+  "repairs": [],
+  "finished_at": "2026-10-16T23:23:04.521Z"
+}
