@@ -16,7 +16,7 @@ import { FAST_MODEL, MODEL } from "../llm.js";
 import { repairAndVerify } from "../repair.js";
 import { validateWorkflow, type Workflow } from "../schema.js";
 import { newId, type RunRecord } from "../store.js";
-import { geminiCost, meter, type Usage } from "../usage.js";
+import { emptyUsage, geminiCost, meter, type Usage } from "../usage.js";
 import { FAULTS, type FaultName } from "./faults.js";
 import { gradeOutput, type Grade } from "./grade.js";
 import { loadSessions, regrade, RESULTS_DIR } from "./report.js";
@@ -37,6 +37,8 @@ export interface Trial {
   status: "ok" | "check_failed" | "error" | "no_answer";
   error?: string;
   grade: Grade;
+  /** Failed for a reason outside the system under test (Gemini quota or outage); left out of the metrics. */
+  infra?: boolean;
   /** The workflow's own checks (replay only). */
   checks?: { passed: number; total: number };
   usage: Usage;
@@ -69,8 +71,10 @@ export interface RepairRecord {
     cost_usd: number;
     error?: string;
   };
-  /** Replay of the repaired workflow, graded. */
+  /** The repaired workflow's run (repair's own test run when it made one), graded. */
   after?: Trial;
+  /** Repair failed for a reason outside the system under test; left out of the metrics. */
+  infra?: boolean;
   healed: boolean;
   /** The repaired workflow replaced the saved one (daily --accept). */
   accepted?: boolean;
@@ -149,6 +153,23 @@ function keepOutput(output: unknown): unknown {
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
+/** Gemini quota or outage: says nothing about the agent or the workflow. */
+const INFRA_ERROR = /Every Gemini model|Gemini quota used up|out of quota|RESOURCE_EXHAUSTED|\b503\b|UNAVAILABLE|high demand/i;
+/** Quota that won't come back today: every later call would fail too, so the command stops. */
+const QUOTA_ERROR = /Every Gemini model|Gemini quota used up|out of quota/i;
+
+/** Thrown to stop a command; results so far are already written. */
+export class BenchStopped extends Error {}
+
+/** Flags infrastructure failures, and stops the command when the Gemini quota is gone (the trial isn't recorded). */
+function screen<T extends { error?: string; infra?: boolean }>(item: T): T {
+  if (item.error && INFRA_ERROR.test(item.error)) {
+    if (QUOTA_ERROR.test(item.error)) throw new BenchStopped(`Gemini quota is used up; stopping. ${item.error.slice(0, 200)}`);
+    item.infra = true;
+  }
+  return item;
+}
+
 /** Explores the task from scratch. For "learn", also compiles the trace into a workflow (counted in the trial). */
 async function agentTrial(task: BenchTask, kind: "raw" | "learn"): Promise<{ trial: Trial; workflow?: Workflow }> {
   const started = Date.now();
@@ -167,7 +188,7 @@ async function agentTrial(task: BenchTask, kind: "raw" | "learn"): Promise<{ tri
   const answered = trace?.answer !== undefined;
   return {
     workflow,
-    trial: {
+    trial: screen({
       kind,
       task: task.id,
       category: task.category,
@@ -181,11 +202,37 @@ async function agentTrial(task: BenchTask, kind: "raw" | "learn"): Promise<{ tri
       tool_calls: trace?.calls.length ?? 0,
       trace_id: trace?.id,
       output: keepOutput(trace?.answer),
-    },
+    }),
   };
 }
 
 export const rawTrial = async (task: BenchTask) => (await agentTrial(task, "raw")).trial;
+
+function replayRecord(
+  task: BenchTask,
+  wf: Workflow,
+  r: { run?: RunRecord; error?: string; usage: Usage; started: number; duration_ms: number },
+): Trial {
+  const { run } = r;
+  const checks = run?.steps.flatMap((s) => s.checks) ?? [];
+  const error = r.error ?? run?.error;
+  return screen({
+    kind: "replay",
+    task: task.id,
+    category: task.category,
+    started_at: new Date(r.started).toISOString(),
+    duration_ms: r.duration_ms,
+    status: run?.status ?? "error",
+    ...(error && { error }),
+    grade: gradeOutput(run?.status === "error" ? null : run?.output, task.expect),
+    checks: { passed: checks.filter((c) => c.passed).length, total: checks.length },
+    usage: r.usage,
+    cost_usd: geminiCost(r.usage),
+    run_id: run?.run_id,
+    workflow_version: wf.version,
+    output: keepOutput(run?.output),
+  });
+}
 
 export async function replayTrial(task: BenchTask, wf: Workflow): Promise<{ trial: Trial; run?: RunRecord }> {
   const started = Date.now();
@@ -198,26 +245,7 @@ export async function replayTrial(task: BenchTask, wf: Workflow): Promise<{ tria
       error = message(err);
     }
   });
-  const checks = run?.steps.flatMap((s) => s.checks) ?? [];
-  return {
-    run,
-    trial: {
-      kind: "replay",
-      task: task.id,
-      category: task.category,
-      started_at: new Date(started).toISOString(),
-      duration_ms: Date.now() - started,
-      status: run?.status ?? "error",
-      ...((error ?? run?.error) && { error: error ?? run?.error }),
-      grade: gradeOutput(run?.status === "error" ? null : run?.output, task.expect),
-      checks: { passed: checks.filter((c) => c.passed).length, total: checks.length },
-      usage,
-      cost_usd: geminiCost(usage),
-      run_id: run?.run_id,
-      workflow_version: wf.version,
-      output: keepOutput(run?.output),
-    },
-  };
+  return { run, trial: replayRecord(task, wf, { run, error, usage, started, duration_ms: Date.now() - started }) };
 }
 
 /** The step a repair should target: the first that failed, or the last when only the output template failed. */
@@ -227,7 +255,10 @@ function failingStep(run: RunRecord): string | undefined {
   return run.status === "error" ? run.steps.at(-1)?.id : undefined;
 }
 
-/** Repairs a failed replay (repairAndVerify), then replays the fix and grades it. */
+/**
+ * Repairs a failed replay (repairAndVerify) and grades the fix: on repair's own test run of it when there is one (no
+ * extra calls), otherwise on a fresh replay.
+ */
 async function repairTrial(
   task: BenchTask,
   wf: Workflow,
@@ -261,22 +292,36 @@ async function repairTrial(
     cost_usd: geminiCost(usage),
     ...(error && { error }),
   };
+  if (error && screen<{ error?: string; infra?: boolean }>({ error }).infra) record.infra = true;
   if (!result?.changed) return { record };
   const fixed: Workflow = { ...result.workflow, version: (wf.version ?? 1) + 1 };
-  record.after = (await replayTrial(task, fixed)).trial;
+  const test = result.test_run;
+  record.after = test
+    ? replayRecord(task, fixed, { run: test, usage: emptyUsage(), started: Date.parse(test.started_at), duration_ms: test.duration_ms })
+    : (await replayTrial(task, fixed)).trial;
+  if (record.after.infra) record.infra = true;
   record.healed = record.after.grade.passed;
   return { record, fixed };
 }
 
 // ---------- commands ----------
 
+/** Runs fn over items, `limit` at a time. After a BenchStopped no new item starts; it's rethrown once all settle. */
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let next = 0;
+  let stopped: unknown;
   await Promise.all(
     Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (next < items.length) await fn(items[next++]);
+      while (next < items.length && !stopped) {
+        try {
+          await fn(items[next++]);
+        } catch (err) {
+          stopped ??= err;
+        }
+      }
     }),
   );
+  if (stopped) throw stopped;
 }
 
 const verdict = (t: Trial) => `${t.grade.passed ? "PASS" : "FAIL"} ${(t.duration_ms / 1000).toFixed(1)}s $${t.cost_usd.toFixed(4)}`;
@@ -355,13 +400,19 @@ export async function dailyTasks(tasks: BenchTask[], opts: { accept: boolean; co
   return session;
 }
 
-/** Breaks each workflow with each fault, replays it, and lets repair fix it. Saved workflows are never changed. */
-export async function driftTasks(tasks: BenchTask[], opts: { faults: FaultName[]; concurrency: number }) {
+/**
+ * Breaks each workflow, replays it, and lets repair fix it. Saved workflows are never changed. By default each task
+ * gets one fault, rotating through `faults` (the next one if it doesn't apply), so every fault is covered on about
+ * a third of the tasks for a third of the Gemini calls; `all` tries every fault on every task.
+ */
+export async function driftTasks(tasks: BenchTask[], opts: { faults: FaultName[]; all?: boolean; concurrency: number }) {
   const session = newSession("drift", opts);
   const ready = tasks.filter((t) => loadWorkflow(t.id));
   await mapLimit(ready, opts.concurrency, async (task) => {
     const wf = loadWorkflow(task.id)!;
-    for (const fault of opts.faults) {
+    const i = ready.indexOf(task);
+    const order = opts.all ? opts.faults : [...opts.faults.slice(i % opts.faults.length), ...opts.faults.slice(0, i % opts.faults.length)];
+    for (const fault of order) {
       const broken = FAULTS[fault](wf);
       if (!broken) {
         log(`[${task.id}] ${fault}: not applicable`);
@@ -375,6 +426,7 @@ export async function driftTasks(tasks: BenchTask[], opts: { faults: FaultName[]
         `[${task.id}] ${fault}: ${!record.broke ? "benign" : !record.detected ? "undetected" : record.healed ? "healed" : "not healed"}`,
       );
       writeSession(session);
+      if (!opts.all) break;
     }
   });
   session.finished_at = new Date().toISOString();

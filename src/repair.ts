@@ -171,6 +171,8 @@ export interface VerifiedRepair extends EditResult {
   verified: boolean | null;
   rounds: number;
   test?: { status: string; failed_step?: string; failures: string[] };
+  /** The test run of the returned fix (not saved to run history). */
+  test_run?: RunRecord;
 }
 
 const firstFailed = (run: RunRecord) => run.steps.find((s) => s.status !== "ok");
@@ -202,7 +204,7 @@ export async function repairAndVerify(
   let base = current;
   let evidenceRun = run;
   let step = stepId;
-  let best: { result: EditResult; score: number; test: VerifiedRepair["test"]; round: number } | undefined;
+  let best: { result: EditResult; score: number; test: VerifiedRepair["test"]; run: RunRecord; round: number } | undefined;
   // Later rounds edit the previous proposal, so their diff covers only that round; the user reviews every change.
   const againstCurrent = (r: EditResult): EditResult => {
     const diff = diffWorkflows(current.name, current, r.workflow, current.version ?? 0, current.version ?? 0);
@@ -268,8 +270,8 @@ export async function repairAndVerify(
     log(`  repair round ${round}: test ${test.status}${summary.failed_step ? ` at ${summary.failed_step}` : ""}`);
 
     const score = progress(unsaved, test);
-    if (!best || score > best.score) best = { result, score, test: summary, round };
-    if (test.status === "ok") return { ...againstCurrent(result), verified: true, rounds: round, test: summary };
+    if (!best || score > best.score) best = { result, score, test: summary, run: test, round };
+    if (test.status === "ok") return { ...againstCurrent(result), verified: true, rounds: round, test: summary, test_run: test };
 
     base = result.workflow;
     evidenceRun = test;
@@ -285,5 +287,6 @@ export async function repairAndVerify(
     verified: false,
     rounds: b.round,
     test: b.test,
+    test_run: b.run,
   };
 }

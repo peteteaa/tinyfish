@@ -90,6 +90,8 @@ export interface BenchReport {
   daily: DailyPoint[];
   faults: FaultStats[];
   repair: { attempted: number; healed: number; undetected: number; mean_cost_usd: number; mean_ms: number };
+  /** Trials and repairs left out because Gemini was out of quota or down. */
+  infra_excluded: number;
   /** Mean rate-limit wait per compare trial, by mode (left out of latency). */
   waits: { raw: number; replay: number };
 }
@@ -159,7 +161,10 @@ export function regrade(sessions: Session[]): Session[] {
 }
 
 export function buildReport(loaded: Session[] = loadSessions()): BenchReport {
-  const sessions = regrade(loaded);
+  // Gemini quota or outage failures say nothing about either mode; they're counted, not graded.
+  const all = regrade(loaded);
+  const infra = all.reduce((n, s) => n + s.trials.filter((t) => t.infra).length + s.repairs.filter((r) => r.infra).length, 0);
+  const sessions = all.map((s) => ({ ...s, trials: s.trials.filter((t) => !t.infra), repairs: s.repairs.filter((r) => !r.infra) }));
   const of = (kind: Session["kind"]) => sessions.filter((s) => s.kind === kind);
   const compareTrials = of("compare").flatMap((s) => s.trials);
   // Learning cost adds up every attempt (relearning a bad answer isn't free); "passed" is the latest attempt.
@@ -267,6 +272,7 @@ export function buildReport(loaded: Session[] = loadSessions()): BenchReport {
       mean_cost_usd: mean(attempted.map((r) => r.repair!.cost_usd)),
       mean_ms: mean(attempted.map((r) => r.repair!.duration_ms)),
     },
+    infra_excluded: infra,
     waits: { raw: rawStats?.wait_ms ?? 0, replay: replayStats?.wait_ms ?? 0 },
   };
 }
@@ -313,5 +319,6 @@ export function formatReport(r: BenchReport): string {
         `${r.repair.undetected} breakages went unnoticed by checks; mean $${r.repair.mean_cost_usd.toFixed(4)}, ${secs(r.repair.mean_ms)}`,
     );
   }
+  if (r.infra_excluded) lines.push("", `${r.infra_excluded} trials/repairs left out: Gemini was out of quota or down.`);
   return lines.join("\n");
 }

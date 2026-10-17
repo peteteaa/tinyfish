@@ -118,6 +118,13 @@ test("report: compares raw and replay per task", () => {
   assert.equal(t.break_even_runs, 3); // 0.06 learn / 0.027 saved per run
   assert.equal(report.headline!.raw_success, 0.5);
   assert.equal(report.headline!.replay_success, 1);
+
+  // A trial that failed because Gemini was out of quota is counted, not graded.
+  const withInfra = buildReport([
+    { ...base, id: "c", kind: "compare", started_at: "2026-10-17T00:00:00Z", trials: [trial("raw", 50_000, 100_000), trial("replay", 5_000, 10_000), { ...trial("replay", 100, 0, false), infra: true }] },
+  ]);
+  assert.equal(withInfra.headline!.replay_success, 1);
+  assert.equal(withInfra.infra_excluded, 1);
 });
 
 // Live: real TinyFish Fetch (free). Skipped, not faked, when no key is configured.
