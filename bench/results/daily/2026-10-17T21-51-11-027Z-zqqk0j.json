@@ -1,0 +1,1728 @@
+{
+  "id": "2026-10-17T21-51-11-027Z-zqqk0j",
+  "kind": "daily",
+  "started_at": "2026-10-17T21:51:11.028Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "7daf6e0",
+  "options": {
+    "accept": false,
+    "concurrency": 2
+  },
+  "trials": [
+    {
+      "kind": "replay",
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:51:11.047Z",
+      "duration_ms": 2893,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Hobby\", \"Pro\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 3 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 3536,
+          "output": 303,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 3536,
+              "output": 303,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0018183,
+      "run_id": "2026-10-17T21-51-11-083Z-na1gvp",
+      "workflow_version": 1,
+      "output": {
+        "plans": [
+          {
+            "name": "Hobby",
+            "monthly_price": "$0/mo.",
+            "key_features": [
+              "Import your repo, deploy in seconds",
+              "Automatic CI/CD",
+              "Web Application Firewall",
+              "Global, automated CDN",
+              "Fluid compute",
+              "DDoS Mitigation",
+              "Traffic & performance insights"
+            ]
+          },
+          {
+            "name": "Pro",
+            "monthly_price": "$20/mo.",
+            "key_features": [
+              "All Hobby features, plus:",
+              "$20 of included usage credit",
+              "Flat Rate CDN with traffic spike protection",
+              "Advanced spend management",
+              "Team collaboration & free viewer seats",
+              "Cold start prevention",
+              "Free custom domain"
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "monthly_price": "Custom",
+            "key_features": [
+              "All Pro features, plus:",
+              "Guest & Team access controls",
+              "SCIM & Directory Sync",
+              "Managed WAF Rulesets",
+              "Multi-region compute & failover",
+              "99.99% SLA",
+              "Advanced Support"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:51:11.054Z",
+      "duration_ms": 3355,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 5666,
+          "output": 896,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 5666,
+              "output": 896,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0039398,
+      "run_id": "2026-10-17T21-51-11-107Z-qlwv0w",
+      "workflow_version": 1,
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "monthly_price": "$0",
+            "features": [
+              {
+                "category": "General",
+                "detail": "Unlimited API requests"
+              },
+              {
+                "category": "General",
+                "detail": "50,000 monthly active users"
+              },
+              {
+                "category": "General",
+                "detail": "500 MB database size"
+              },
+              {
+                "category": "General",
+                "detail": "5 GB egress"
+              },
+              {
+                "category": "General",
+                "detail": "5 GB cached egress"
+              },
+              {
+                "category": "General",
+                "detail": "1 GB file storage"
+              },
+              {
+                "category": "General",
+                "detail": "Community support"
+              }
+            ]
+          },
+          {
+            "name": "Pro",
+            "monthly_price": "From $25",
+            "features": [
+              {
+                "category": "General",
+                "detail": "100,000 monthly active users"
+              },
+              {
+                "category": "General",
+                "detail": "8 GB disk size per project"
+              },
+              {
+                "category": "General",
+                "detail": "250 GB egress"
+              },
+              {
+                "category": "General",
+                "detail": "250 GB cached egress"
+              },
+              {
+                "category": "General",
+                "detail": "100 GB file storage"
+              },
+              {
+                "category": "General",
+                "detail": "Email support"
+              },
+              {
+                "category": "General",
+                "detail": "Daily backups stored for 7 days"
+              },
+              {
+                "category": "General",
+                "detail": "7-day log retention"
+              }
+            ]
+          },
+          {
+            "name": "Team",
+            "monthly_price": "From $599",
+            "features": [
+              {
+                "category": "General",
+                "detail": "SOC2 & ISO 27001"
+              },
+              {
+                "category": "General",
+                "detail": "Project-scoped and read-only access"
+              },
+              {
+                "category": "General",
+                "detail": "HIPAA available as paid add-on"
+              },
+              {
+                "category": "General",
+                "detail": "SSO for Supabase Dashboard"
+              },
+              {
+                "category": "General",
+                "detail": "Priority email support & SLAs"
+              },
+              {
+                "category": "General",
+                "detail": "Daily backups stored for 14 days"
+              },
+              {
+                "category": "General",
+                "detail": "28-day log retention"
+              }
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "monthly_price": "Custom",
+            "features": [
+              {
+                "category": "General",
+                "detail": "Technical Account Management"
+              },
+              {
+                "category": "General",
+                "detail": "Uptime SLAs"
+              },
+              {
+                "category": "General",
+                "detail": "Supports AWS PrivateLink"
+              },
+              {
+                "category": "General",
+                "detail": "24×7×365 premium enterprise support"
+              },
+              {
+                "category": "General",
+                "detail": "Private Slack channel"
+              },
+              {
+                "category": "General",
+                "detail": "Custom Security Questionnaires"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "linear_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:51:13.944Z",
+      "duration_ms": 1798,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Basic\", \"Business\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 671,
+          "output": 343,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 671,
+              "output": 343,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0010588,
+      "run_id": "2026-10-17T21-51-13-954Z-t5orpo",
+      "workflow_version": 1,
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "price": "$0",
+            "features": [
+              "Unlimited members",
+              "2 teams",
+              "250 issues",
+              "Agent platform",
+              "Linear Agent"
+            ]
+          },
+          {
+            "name": "Basic",
+            "price": "$10 per user/month",
+            "features": [
+              "All Free features +",
+              "5 teams",
+              "Unlimited issues",
+              "Unlimited file uploads",
+              "Admin roles"
+            ]
+          },
+          {
+            "name": "Business",
+            "price": "$16 per user/month",
+            "features": [
+              "All Basic features +",
+              "Unlimited teams",
+              "Private teams and guests",
+              "Triage Intelligence",
+              "Loops",
+              "Code Intelligence",
+              "Linear Insights",
+              "Linear Asks",
+              "Zendesk and Intercom integrations"
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "price": "Custom",
+            "features": [
+              "All Business features +",
+              "Invoice/PO billing",
+              "SAML and SCIM",
+              "Granular admin controls",
+              "Enterprise-grade security",
+              "Advanced org modeling",
+              "Migration & onboarding support",
+              "Priority support",
+              "Account management"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:51:15.743Z",
+      "duration_ms": 2082,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 4 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 4384,
+          "output": 382,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 4384,
+              "output": 382,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0022702,
+      "run_id": "2026-10-17T21-51-15-755Z-ah9hn4",
+      "workflow_version": 1,
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "monthly_price": "$0",
+            "features": [
+              "Deploy from AI, Git, or API",
+              "Private by default until you publish",
+              "Unlimited deploy previews",
+              "Build with Agent Runners",
+              "Add Custom domains with SSL",
+              "Functions & AI models",
+              "Store structured data with Netlify Database",
+              "Store files & images with Blob storage",
+              "Firewall Traffic Rules & basic rate limiting",
+              "Global CDN",
+              "300 credit limit / month"
+            ]
+          },
+          {
+            "name": "Personal",
+            "monthly_price": "$9",
+            "features": [
+              "Smart secret detection",
+              "1-day observability",
+              "Priority email support",
+              "1,000 credits / month"
+            ]
+          },
+          {
+            "name": "Pro",
+            "monthly_price": "$20",
+            "features": [
+              "Private organization repos",
+              "Shared env variables",
+              "3+ concurrent builds",
+              "30-day analytics & metrics",
+              "Monthly credits from plan"
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "monthly_price": "Custom",
+            "features": [
+              "99.99% SLA",
+              "Enterprise network tier",
+              "High-performance builds",
+              "SSO & SCIM",
+              "Log drains",
+              "Organization management",
+              "24/7 dedicated support"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "github_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:51:14.411Z",
+      "duration_ms": 3839,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Team\", \"Enterprise\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": true,
+            "detail": "3 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": true,
+            "detail": "largest list has 3 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 4317,
+          "output": 442,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 4317,
+              "output": 442,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0024001,
+      "run_id": "2026-10-17T21-51-14-425Z-7szhqs",
+      "workflow_version": 1,
+      "output": {
+        "plans": [
+          {
+            "name": "Free",
+            "price_per_user_per_month": "$ 0 USD",
+            "key_features": [
+              "Unlimited public/private repositories",
+              "Dependabot security and version updates",
+              "2,000 CI/CD minutes/month",
+              "500MB of Packages storage",
+              "Issues & Projects",
+              "Community support"
+            ]
+          },
+          {
+            "name": "Team",
+            "price_per_user_per_month": "$ 4 USD",
+            "key_features": [
+              "Everything included in Free, plus...",
+              "Access to GitHub Codespaces",
+              "Repository rules",
+              "Multiple reviewers in pull requests",
+              "Draft pull requests",
+              "Code owners",
+              "Required reviewers",
+              "Pages and Wikis",
+              "Environment deployment branches and secrets",
+              "3,000 CI/CD minutes/month",
+              "2GB of Packages storage",
+              "Web-based support"
+            ]
+          },
+          {
+            "name": "Enterprise",
+            "price_per_user_per_month": "$ 21 USD",
+            "key_features": [
+              "Everything included in Team, plus...",
+              "Data residency",
+              "Enterprise Managed Users",
+              "User provisioning through SCIM",
+              "Enterprise Account to centrally manage multiple organizations",
+              "Environment protection rules",
+              "Repository rules",
+              "Audit Log API",
+              "SOC1, SOC2, type 2 reports annually",
+              "FedRAMP Tailored Authority to Operate (ATO)",
+              "SAML single sign-on",
+              "Advanced auditing",
+              "GitHub Connect",
+              "50,000 CI/CD minutes/month",
+              "50GB of Packages storage"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "scrapeme_shop",
+      "category": "products",
+      "started_at": "2026-10-17T21:51:18.253Z",
+      "duration_ms": 1898,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x15",
+            "passed": true,
+            "detail": "15 matches"
+          },
+          {
+            "expectation": "15+ records with name|title, price",
+            "passed": true,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 400,
+          "output": 452,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 400,
+              "output": 452,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.00125,
+      "run_id": "2026-10-17T21-51-18-257Z-d91ykf",
+      "workflow_version": 1,
+      "output": {
+        "products": [
+          {
+            "name": "Bulbasaur",
+            "price": "£63.00"
+          },
+          {
+            "name": "Ivysaur",
+            "price": "£87.00"
+          },
+          {
+            "name": "Venusaur",
+            "price": "£105.00"
+          },
+          {
+            "name": "Charmander",
+            "price": "£48.00"
+          },
+          {
+            "name": "Charmeleon",
+            "price": "£165.00"
+          },
+          {
+            "name": "Charizard",
+            "price": "£156.00"
+          },
+          {
+            "name": "Squirtle",
+            "price": "£130.00"
+          },
+          {
+            "name": "Wartortle",
+            "price": "£123.00"
+          },
+          {
+            "name": "Blastoise",
+            "price": "£76.00"
+          },
+          {
+            "name": "Caterpie",
+            "price": "£73.00"
+          },
+          {
+            "name": "Butterfree",
+            "price": "£162.00"
+          },
+          {
+            "name": "Weedle",
+            "price": "£25.00"
+          },
+          {
+            "name": "Kakuna",
+            "price": "£148.00"
+          },
+          {
+            "name": "Beedrill",
+            "price": "£168.00"
+          },
+          {
+            "name": "Pidgey",
+            "price": "£159.00"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "webscraper_laptops",
+      "category": "products",
+      "started_at": "2026-10-17T21:51:20.158Z",
+      "duration_ms": 2154,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "/\\$\\s?\\d/ x10",
+            "passed": true,
+            "detail": "10 matches"
+          },
+          {
+            "expectation": "10+ records with name|title|model, price",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 8330,
+          "output": 437,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 8330,
+              "output": 437,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0035915,
+      "run_id": "2026-10-17T21-51-20-171Z-3o69rw",
+      "workflow_version": 1,
+      "output": {
+        "laptops": [
+          {
+            "name": "Asus VivoBook...",
+            "price": "$295.99",
+            "number_of_reviews": 14
+          },
+          {
+            "name": "Prestigio Smar...",
+            "price": "$299",
+            "number_of_reviews": 8
+          },
+          {
+            "name": "Prestigio Smar...",
+            "price": "$299",
+            "number_of_reviews": 12
+          },
+          {
+            "name": "Aspire E1-510",
+            "price": "$306.99",
+            "number_of_reviews": 2
+          },
+          {
+            "name": "Lenovo V110-15...",
+            "price": "$321.94",
+            "number_of_reviews": 5
+          },
+          {
+            "name": "Lenovo V110-15...",
+            "price": "$356.49",
+            "number_of_reviews": 6
+          },
+          {
+            "name": "Hewlett Packar...",
+            "price": "$364.46",
+            "number_of_reviews": 12
+          },
+          {
+            "name": "Acer Aspire 3...",
+            "price": "$372.7",
+            "number_of_reviews": 2
+          },
+          {
+            "name": "Acer Aspire A3...",
+            "price": "$379.94",
+            "number_of_reviews": 0
+          },
+          {
+            "name": "Acer Aspire ES...",
+            "price": "$379.95",
+            "number_of_reviews": 9
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "hn_front_page",
+      "category": "products",
+      "started_at": "2026-10-17T21:51:22.314Z",
+      "duration_ms": 39964,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "10+ records with title|headline, point|score",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 1726,
+          "output": 463,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 1726,
+              "output": 463,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 37448.444261
+      },
+      "cost_usd": 0.0016753,
+      "run_id": "2026-10-17T21-51-22-322Z-ryerwi",
+      "workflow_version": 1,
+      "output": {
+        "stories": [
+          {
+            "title": "Bleached corals thrive within days when touching healthy neighbour",
+            "link": "nature.com",
+            "points": 194
+          },
+          {
+            "title": "Chrome and Edge are removing XSLT: what breaks and what does not",
+            "link": "doctor-seo.net",
+            "points": 41
+          },
+          {
+            "title": "Dam removals are bringing fish back across the northeastern United States",
+            "link": "smithsonianmag.com",
+            "points": 97
+          },
+          {
+            "title": "Furifont, a Japanese font that shows furigana",
+            "link": "antfu.me",
+            "points": 199
+          },
+          {
+            "title": "The Commodore 64 hardware simulator: break chips and pins, see the results",
+            "link": "github.com/antirez",
+            "points": 102
+          },
+          {
+            "title": "Making chicken transparent using Dorito dust",
+            "link": "chillphysicsenjoyer.substack.com",
+            "points": 224
+          },
+          {
+            "title": "Microsoft and CMU Team Up to Train Early Career Software Engineers",
+            "link": "cmu.edu",
+            "points": 30
+          },
+          {
+            "title": "DeepSeek-v4.1-Flash-1017",
+            "link": "huggingface.co",
+            "points": 603
+          },
+          {
+            "title": "Pele – Mermaid diagrams as themeable SVG",
+            "link": "pele.run",
+            "points": 126
+          },
+          {
+            "title": "Source code of the Estonian online voting system",
+            "link": "github.com/valimised",
+            "points": 112
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "books_travel",
+      "category": "products",
+      "started_at": "2026-10-17T21:51:17.829Z",
+      "duration_ms": 45206,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "contains \"Himalayas\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x11",
+            "passed": true,
+            "detail": "11 matches"
+          },
+          {
+            "expectation": "11+ records with title|name, price",
+            "passed": true,
+            "detail": "largest list has 11 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 15,
+        "total": 15
+      },
+      "usage": {
+        "gemini": {
+          "calls": 12,
+          "input": 10571,
+          "output": 946,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 12,
+              "input": 10571,
+              "output": 946,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 3,
+          "fetch_urls": 12,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 151086.824931
+      },
+      "cost_usd": 0.005536299999999999,
+      "run_id": "2026-10-17T21-51-17-864Z-vk44qn",
+      "workflow_version": 1,
+      "output": {
+        "books": [
+          {
+            "title": "It's Only the Himalayas",
+            "price": "£45.17",
+            "star_rating": "Two"
+          },
+          {
+            "title": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond",
+            "price": "£49.43",
+            "star_rating": "Four"
+          },
+          {
+            "title": "See America: A Celebration of Our National Parks & Treasured Sites",
+            "price": "£48.87",
+            "star_rating": "Three"
+          },
+          {
+            "title": "Vagabonding: An Uncommon Guide to the Art of Long-Term World Travel",
+            "price": "£36.94",
+            "star_rating": "Two"
+          },
+          {
+            "title": "Under the Tuscan Sun",
+            "price": "£37.33",
+            "star_rating": "Three"
+          },
+          {
+            "title": "A Summer In Europe",
+            "price": "£44.34",
+            "star_rating": "Two"
+          },
+          {
+            "title": "The Great Railway Bazaar",
+            "price": "£30.54",
+            "star_rating": "One"
+          },
+          {
+            "title": "A Year in Provence (Provence #1)",
+            "price": "£56.88",
+            "star_rating": "Four"
+          },
+          {
+            "title": "The Road to Little Dribbling: Adventures of an American in Britain (Notes From a Small Island #2)",
+            "price": "£23.21",
+            "star_rating": "One"
+          },
+          {
+            "title": "Neither Here nor There: Travels in Europe",
+            "price": "£38.95",
+            "star_rating": "Three"
+          },
+          {
+            "title": "1,000 Places to See Before You Die",
+            "price": "£26.08",
+            "star_rating": "One"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:52:03.043Z",
+      "duration_ms": 1673,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Anthropic\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 7 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 3,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 690,
+          "output": 246,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 690,
+              "output": 246,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.000822,
+      "run_id": "2026-10-17T21-52-03-051Z-8mhf3q",
+      "workflow_version": 1,
+      "output": {
+        "roles": [
+          {
+            "title": "Anthropic Fellows Program, AI Safety & Security",
+            "location": "London, UK"
+          },
+          {
+            "title": "Anthropic Fellows Program, ML Systems & Reinforcement Learning",
+            "location": ""
+          },
+          {
+            "title": "Anthropic Fellows Program, The Anthropic Institute (Economics & Policy)",
+            "location": ""
+          },
+          {
+            "title": "Anthropic STEM FellowNew",
+            "location": "Remote-Friendly, United States"
+          },
+          {
+            "title": "Conceptual Reasoning Fellow",
+            "location": ""
+          },
+          {
+            "title": "Data Operations Manager, Human Data",
+            "location": "San Francisco, CA"
+          },
+          {
+            "title": "Engineering Manager, GPU (ML Accelerator)",
+            "location": "San Francisco, CA"
+          },
+          {
+            "title": "Engineering Manager, Research Data Platform",
+            "location": ""
+          },
+          {
+            "title": "Engineering Manager, Research Productivity",
+            "location": ""
+          },
+          {
+            "title": "Engineering Manager, Search",
+            "location": ""
+          },
+          {
+            "title": "[Expression of Interest] Research Engineer / Scientist, Alignment - London",
+            "location": "London, UK"
+          },
+          {
+            "title": "[Expression of Interest] Research Manager, Interpretability",
+            "location": "San Francisco, CA"
+          },
+          {
+            "title": "Full-Stack Software Engineer, Reinforcement Learning",
+            "location": ""
+          },
+          {
+            "title": "Life Sciences Operator, Lead",
+            "location": "New York City, NY"
+          },
+          {
+            "title": "Machine Learning Infrastructure Engineer, Safeguards Research",
+            "location": ""
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "github_trending",
+      "category": "products",
+      "started_at": "2026-10-17T21:52:02.291Z",
+      "duration_ms": 2688,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "5+ records with name|repo",
+            "passed": false,
+            "detail": "largest list has 1 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 645,
+          "output": 62,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 645,
+              "output": 62,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0003485,
+      "run_id": "2026-10-17T21-52-02-301Z-p4xjk5",
+      "workflow_version": 1,
+      "output": {
+        "repositories": [
+          {
+            "repo": "anthropics / claude-plugins-official",
+            "description": "Official, Anthropic-managed directory of high quality Claude Code Plugins.",
+            "language": "null"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:52:04.984Z",
+      "duration_ms": 2088,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "3+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 2 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 230,
+          "output": 83,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 230,
+              "output": 83,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0002765,
+      "run_id": "2026-10-17T21-52-04-989Z-umuqq1",
+      "workflow_version": 1,
+      "output": {
+        "roles": [
+          {
+            "title": "Forward Deployed Infrastructure Engineer, New Grad - US Government",
+            "location": "Washington, D.C."
+          },
+          {
+            "title": "Forward Deployed Software Engineer, New Grad - UK Government",
+            "location": "London, United Kingdom"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "openai_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:52:04.737Z",
+      "duration_ms": 3658,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": true,
+            "detail": "largest list has 15 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 18687,
+          "output": 540,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 18687,
+              "output": 540,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0069561,
+      "run_id": "2026-10-17T21-52-04-770Z-ubiujp",
+      "workflow_version": 1,
+      "output": {
+        "roles": [
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco; San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "Seattle"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco; London, UK; New York City; Seattle"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco; Mountain View"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "Washington, DC; San Francisco; Seattle"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco; New York City; Seattle; US - Remote"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "San Francisco; Mountain View"
+          },
+          {
+            "title": "Applied AI",
+            "team": "Applied AI",
+            "location": "Seattle"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:52:07.074Z",
+      "duration_ms": 54695,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "10+ records with title|role|position|name, company",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 3865,
+          "output": 300,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 3865,
+              "output": 300,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 52510.053734
+      },
+      "cost_usd": 0.0019095,
+      "run_id": "2026-10-17T21-52-07-083Z-7revfv",
+      "workflow_version": 1,
+      "output": {
+        "jobs": [
+          {
+            "title": "Head of Technology",
+            "company": "Sanctuary Computer"
+          },
+          {
+            "title": "Staff Software Engineer",
+            "company": "Samsara"
+          },
+          {
+            "title": "SI agent engineer",
+            "company": "Sticker Mule"
+          },
+          {
+            "title": "Engineering Manager",
+            "company": "Medify"
+          },
+          {
+            "title": "Applied AI Engineers for telecommunications company",
+            "company": "Toptal"
+          },
+          {
+            "title": "Apigee Engineer for Global Consumer Food Company",
+            "company": "Toptal"
+          },
+          {
+            "title": "Salesforce Developers with AI-Assisted Coding Experience",
+            "company": "Toptal"
+          },
+          {
+            "title": "Full-Stack E-commerce Developer with Sage X3 Experience",
+            "company": "Toptal"
+          },
+          {
+            "title": "Senior Full Stack",
+            "company": "Toggl"
+          },
+          {
+            "title": "Senior Independent AI Engineer / Architect",
+            "company": "A.Team"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "yc_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:52:08.396Z",
+      "duration_ms": 53991,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "5+ records with title|role|position|name, company|startup",
+            "passed": true,
+            "detail": "largest list has 20 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 2767,
+          "output": 635,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 2767,
+              "output": 635,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 51322.373845999995
+      },
+      "cost_usd": 0.0024176,
+      "run_id": "2026-10-17T21-52-08-402Z-bsuy80",
+      "workflow_version": 1,
+      "output": {
+        "jobs": [
+          {
+            "role": "AI Engineer",
+            "company": "BlueCargo (S18)"
+          },
+          {
+            "role": "Product Engineer",
+            "company": "Just Appraised (S17)"
+          },
+          {
+            "role": "Senior Software Engineer, Full Stack",
+            "company": "Postscript (W19)"
+          },
+          {
+            "role": "Forward Deployed Engineer, Test & Validation",
+            "company": "Ohm (W23)"
+          },
+          {
+            "role": "Software Engineer",
+            "company": "Middesk (W19)"
+          },
+          {
+            "role": "Senior Network Engineer",
+            "company": "WarpBuild (S21)"
+          },
+          {
+            "role": "Backend Engineer",
+            "company": "GoGoGrandparent (S16)"
+          },
+          {
+            "role": "Software Engineer",
+            "company": "Glimpse (S20)"
+          },
+          {
+            "role": "Senior Engineer",
+            "company": "Kivo Health (W23)"
+          },
+          {
+            "role": "Founding AI Engineer",
+            "company": "Middleware (W23)"
+          },
+          {
+            "role": "Software Engineer, Cloud Infrastructure",
+            "company": "Accord (W20)"
+          },
+          {
+            "role": "Head of Engineering",
+            "company": "Lamar Health (W21)"
+          },
+          {
+            "role": "ML Engineer, LLM's",
+            "company": "Knowtex (S22)"
+          },
+          {
+            "role": "Software Engineer, Backend ",
+            "company": "Duffel (S18)"
+          },
+          {
+            "role": "Mechanical Engineer - Robotics",
+            "company": "Nextera Robotics | DIDGE.ai (S20)"
+          },
+          {
+            "role": "Software Engineer (Product)",
+            "company": "Numeral (W23)"
+          },
+          {
+            "role": "Full Stack Developer - Bountiful ",
+            "company": "Bountiful (W17)"
+          },
+          {
+            "role": "FDE (Forward Deployment Engineer)",
+            "company": "REVER (S22)"
+          },
+          {
+            "role": "Autonomous Vehicle Test Specialist – San Francisco",
+            "company": "Polymath Robotics (S22)"
+          },
+          {
+            "role": "Staff Full Stack Engineer",
+            "company": "Sully (S21)"
+          }
+        ]
+      }
+    }
+  ],
+  "repairs": [
+    {
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": false,
+      "healed": false
+    },
+    {
+      "task": "github_trending",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": false,
+      "healed": false
+    },
+    {
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": false,
+      "healed": false
+    }
+  ],
+  "finished_at": "2026-10-17T21:53:02.390Z"
+}

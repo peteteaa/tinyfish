@@ -1,0 +1,2907 @@
+{
+  "id": "2026-10-17T21-48-26-382Z-o5xvgi",
+  "kind": "drift",
+  "started_at": "2026-10-17T21:48:26.383Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "7daf6e0",
+  "options": {
+    "faults": [
+      "url_moved",
+      "redirected_home",
+      "field_renamed"
+    ],
+    "all": false,
+    "concurrency": 2
+  },
+  "trials": [
+    {
+      "kind": "replay",
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:48:26.431Z",
+      "duration_ms": 2437,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Pro, Team, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 1047,
+          "output": 5,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 1047,
+              "output": 5,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.00032659999999999997,
+      "run_id": "2026-10-17T21-48-26-514Z-0a98br",
+      "workflow_version": 1,
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "linear_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:48:34.486Z",
+      "duration_ms": 1268,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Basic\", \"Business\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Basic, Business, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 116,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 116,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000573,
+      "run_id": "2026-10-17T21-48-34-496Z-795556",
+      "workflow_version": 1,
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:48:26.418Z",
+      "duration_ms": 10926,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Hobby\", \"Pro\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Hobby, Pro, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 116,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 116,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000573,
+      "run_id": "2026-10-17T21-48-26-462Z-704i4r",
+      "workflow_version": 1,
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "github_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:48:39.415Z",
+      "duration_ms": 1041,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Team\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Team, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 148,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 148,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000669,
+      "run_id": "2026-10-17T21-48-39-431Z-a00czf",
+      "workflow_version": 1,
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "started_at": "2026-10-17T21:48:41.705Z",
+      "duration_ms": 1481,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Pro, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 1860,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 1860,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0005805,
+      "run_id": "2026-10-17T21-48-41-718Z-5ogxgd",
+      "workflow_version": 1,
+      "output": {
+        "plans": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "books_travel",
+      "category": "products",
+      "started_at": "2026-10-17T21:48:46.849Z",
+      "duration_ms": 4478,
+      "status": "ok",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Himalayas\"",
+            "passed": true,
+            "detail": "all present"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x11",
+            "passed": false,
+            "detail": "10 matches"
+          },
+          {
+            "expectation": "11+ records with title|name, price",
+            "passed": true,
+            "detail": "largest list has 11 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 15,
+        "total": 15
+      },
+      "usage": {
+        "gemini": {
+          "calls": 12,
+          "input": 3966,
+          "output": 945,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 12,
+              "input": 3966,
+              "output": 945,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 3,
+          "fetch_urls": 12,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0035523,
+      "run_id": "2026-10-17T21-48-46-867Z-5b60wv",
+      "workflow_version": 1,
+      "output": {
+        "books": [
+          {
+            "title": "It's Only the Himalayas",
+            "price": "£45.17",
+            "star_rating": "Two"
+          },
+          {
+            "title": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond",
+            "price": "£49.43",
+            "star_rating": "Four"
+          },
+          {
+            "title": "See America: A Celebration of Our National Parks & Treasured Sites",
+            "price": "33.57",
+            "star_rating": "Three"
+          },
+          {
+            "title": "Vagabonding: An Uncommon Guide to the Art of Long-Term World Travel",
+            "price": "£36.94",
+            "star_rating": "Two"
+          },
+          {
+            "title": "Under the Tuscan Sun",
+            "price": "£37.33",
+            "star_rating": "Three"
+          },
+          {
+            "title": "A Summer In Europe",
+            "price": "£44.34",
+            "star_rating": "Two"
+          },
+          {
+            "title": "The Great Railway Bazaar",
+            "price": "£30.54",
+            "star_rating": "One"
+          },
+          {
+            "title": "A Year in Provence (Provence #1)",
+            "price": "£56.88",
+            "star_rating": "Four"
+          },
+          {
+            "title": "The Road to Little Dribbling: Adventures of an American in Britain (Notes From a Small Island #2)",
+            "price": "£23.21",
+            "star_rating": "One"
+          },
+          {
+            "title": "Neither Here nor There: Travels in Europe",
+            "price": "£38.95",
+            "star_rating": "Three"
+          },
+          {
+            "title": "1,000 Places to See Before You Die",
+            "price": "£26.08",
+            "star_rating": "Five"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "scrapeme_shop",
+      "category": "products",
+      "started_at": "2026-10-17T21:48:51.330Z",
+      "duration_ms": 2025,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+            "passed": false,
+            "detail": "missing Bulbasaur, Charmander"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x15",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "15+ records with name|title, price",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 105,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 105,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.000054,
+      "run_id": "2026-10-17T21-48-51-333Z-p83pl3",
+      "workflow_version": 1,
+      "output": {
+        "products": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "webscraper_laptops",
+      "category": "products",
+      "started_at": "2026-10-17T21:48:56.882Z",
+      "duration_ms": 1359,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "/\\$\\s?\\d/ x10",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "10+ records with name|title|model, price",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 4537,
+          "output": 6,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 4537,
+              "output": 6,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0013761,
+      "run_id": "2026-10-17T21-48-56-895Z-l566d9",
+      "workflow_version": 1,
+      "output": {
+        "laptops": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "hn_front_page",
+      "category": "products",
+      "started_at": "2026-10-17T21:50:02.163Z",
+      "duration_ms": 3273,
+      "status": "error",
+      "error": "step extract_stories: Cannot read properties of undefined (reading 'trim')",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "10+ records with title|headline, point|score",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 1
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-10-17T21-50-02-178Z-8q2y8v",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "github_trending",
+      "category": "products",
+      "started_at": "2026-10-17T21:50:04.960Z",
+      "duration_ms": 1033,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "5+ records with name|repo",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 118,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 118,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000579,
+      "run_id": "2026-10-17T21-50-04-970Z-5koi80",
+      "workflow_version": 1,
+      "output": {
+        "repositories": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:50:09.142Z",
+      "duration_ms": 1395,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Anthropic\"",
+            "passed": false,
+            "detail": "missing Anthropic"
+          },
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 3
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 1615,
+          "output": 4,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 1615,
+              "output": 4,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0004945,
+      "run_id": "2026-10-17T21-50-09-151Z-duyps0",
+      "workflow_version": 1,
+      "output": {
+        "roles": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "openai_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:50:09.969Z",
+      "duration_ms": 3506,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 127,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 127,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000606,
+      "run_id": "2026-10-17T21-50-09-989Z-h7902x",
+      "workflow_version": 1,
+      "output": {
+        "roles": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:50:13.958Z",
+      "duration_ms": 1187,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "3+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 113,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 113,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.000056399999999999995,
+      "run_id": "2026-10-17T21-50-13-962Z-q5m8uz",
+      "workflow_version": 1,
+      "output": {
+        "roles": []
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:51:02.715Z",
+      "duration_ms": 3090,
+      "status": "ok",
+      "grade": {
+        "passed": true,
+        "results": [
+          {
+            "expectation": "10+ records with title|role|position|name, company",
+            "passed": true,
+            "detail": "largest list has 10 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 2,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 6436,
+          "output": 270,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 6436,
+              "output": 270,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0026058,
+      "run_id": "2026-10-17T21-51-02-721Z-cpc347",
+      "workflow_version": 1,
+      "output": {
+        "jobs": [
+          {
+            "title": "Atomic Construction, LLC",
+            "company": "Atomic Construction, LLC"
+          },
+          {
+            "title": "Zapier",
+            "company": "Zapier"
+          },
+          {
+            "title": "ClickHouse",
+            "company": "ClickHouse"
+          },
+          {
+            "title": "Credit Wellness LLC",
+            "company": "Credit Wellness LLC"
+          },
+          {
+            "title": "Your Resource Group LLC",
+            "company": "Your Resource Group LLC"
+          },
+          {
+            "title": "OnTheGoSystems",
+            "company": "OnTheGoSystems"
+          },
+          {
+            "title": "Elemental Claims LLC",
+            "company": "Elemental Claims LLC"
+          },
+          {
+            "title": "Abnormal",
+            "company": "Abnormal"
+          },
+          {
+            "title": "Customer.io",
+            "company": "Customer.io"
+          },
+          {
+            "title": "Celonis",
+            "company": "Celonis"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "replay",
+      "task": "yc_jobs",
+      "category": "jobs",
+      "started_at": "2026-10-17T21:51:04.685Z",
+      "duration_ms": 1401,
+      "status": "check_failed",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "5+ records with title|role|position|name, company|startup",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 1,
+        "total": 2
+      },
+      "usage": {
+        "gemini": {
+          "calls": 1,
+          "input": 138,
+          "output": 9,
+          "thoughts": 0,
+          "by_model": {
+            "gemini-3.5-flash-lite": {
+              "calls": 1,
+              "input": 138,
+              "output": 9,
+              "thoughts": 0
+            }
+          }
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0.0000639,
+      "run_id": "2026-10-17T21-51-04-689Z-iqqf3i",
+      "workflow_version": 1,
+      "output": {
+        "jobs": []
+      }
+    }
+  ],
+  "repairs": [
+    {
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "cause": "redirected_home",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_plans",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "The workflow failed because the default parameter passed the homepage instead of the pricing page URL. I updated the default value of pricing_url to https://supabase.com/pricing so it fetches the correct page.",
+        "duration_ms": 5613,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 10707,
+            "output": 1693,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 10707,
+                "output": 1693,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.0074446
+      },
+      "after": {
+        "kind": "replay",
+        "task": "supabase_pricing",
+        "category": "pricing",
+        "started_at": "2026-10-17T21:48:30.817Z",
+        "duration_ms": 3664,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/\\$\\s?\\d/ x2",
+              "passed": true,
+              "detail": "3 matches"
+            },
+            {
+              "expectation": "4+ records with name|title|plan|tier",
+              "passed": true,
+              "detail": "largest list has 4 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-30-817Z-uq4015",
+        "workflow_version": 2,
+        "output": {
+          "plans": [
+            {
+              "name": "Free",
+              "monthly_price": "$0",
+              "features": [
+                {
+                  "category": "Database",
+                  "detail": "Unlimited API requests"
+                },
+                {
+                  "category": "Auth",
+                  "detail": "50,000 monthly active users"
+                },
+                {
+                  "category": "Database",
+                  "detail": "500 MB database size"
+                },
+                {
+                  "category": "Database",
+                  "detail": "5 GB egress"
+                },
+                {
+                  "category": "Storage",
+                  "detail": "5 GB cached egress"
+                },
+                {
+                  "category": "Storage",
+                  "detail": "1 GB file storage"
+                },
+                {
+                  "category": "Support",
+                  "detail": "Community support"
+                }
+              ]
+            },
+            {
+              "name": "Pro",
+              "monthly_price": "From $25",
+              "features": [
+                {
+                  "category": "Auth",
+                  "detail": "100,000 monthly active users"
+                },
+                {
+                  "category": "Database",
+                  "detail": "8 GB disk size per project"
+                },
+                {
+                  "category": "Database",
+                  "detail": "250 GB egress"
+                },
+                {
+                  "category": "Storage",
+                  "detail": "250 GB cached egress"
+                },
+                {
+                  "category": "Storage",
+                  "detail": "100 GB file storage"
+                },
+                {
+                  "category": "Support",
+                  "detail": "Email support"
+                },
+                {
+                  "category": "Database",
+                  "detail": "Daily backups stored for 7 days"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "7-day log retention"
+                }
+              ]
+            },
+            {
+              "name": "Team",
+              "monthly_price": "From $599",
+              "features": [
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "SOC2 & ISO 27001"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "Project-scoped and read-only access"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "HIPAA available as paid add-on"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "SSO for Supabase Dashboard"
+                },
+                {
+                  "category": "Support",
+                  "detail": "Priority email support & SLAs"
+                },
+                {
+                  "category": "Database",
+                  "detail": "Daily backups stored for 14 days"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "28-day log retention"
+                }
+              ]
+            },
+            {
+              "name": "Enterprise",
+              "monthly_price": "Custom",
+              "features": [
+                {
+                  "category": "Support",
+                  "detail": "Technical Account Management"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "Uptime SLAs"
+                },
+                {
+                  "category": "Platform Security and Compliance",
+                  "detail": "Supports AWS PrivateLink"
+                },
+                {
+                  "category": "Support",
+                  "detail": "24×7×365 premium enterprise support"
+                },
+                {
+                  "category": "Support",
+                  "detail": "Private Slack channel"
+                },
+                {
+                  "category": "Support",
+                  "detail": "Custom Security Questionnaires"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "linear_pricing",
+      "category": "pricing",
+      "cause": "field_renamed",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_pricing_plans",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Fixed the extract step's input property reference from body to text, which contains the actual fetched page content.",
+        "duration_ms": 3658,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 5683,
+            "output": 957,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 5683,
+                "output": 957,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.004097399999999999
+      },
+      "after": {
+        "kind": "replay",
+        "task": "linear_pricing",
+        "category": "pricing",
+        "started_at": "2026-10-17T21:48:37.354Z",
+        "duration_ms": 2057,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Free\", \"Basic\", \"Business\", \"Enterprise\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/\\$\\s?\\d/ x2",
+              "passed": true,
+              "detail": "3 matches"
+            },
+            {
+              "expectation": "4+ records with name|title|plan|tier",
+              "passed": true,
+              "detail": "largest list has 4 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-37-354Z-8e4neq",
+        "workflow_version": 2,
+        "output": {
+          "plans": [
+            {
+              "name": "Free",
+              "price": "$0",
+              "features": [
+                "Unlimited members",
+                "2 teams",
+                "250 issues",
+                "Agent platform",
+                "Linear Agent"
+              ]
+            },
+            {
+              "name": "Basic",
+              "price": "$10 per user/month",
+              "features": [
+                "All Free features +",
+                "5 teams",
+                "Unlimited issues",
+                "Unlimited file uploads",
+                "Admin roles"
+              ]
+            },
+            {
+              "name": "Business",
+              "price": "$16 per user/month",
+              "features": [
+                "All Basic features +",
+                "Unlimited teams",
+                "Private teams and guests",
+                "Triage Intelligence",
+                "Loops",
+                "Code Intelligence",
+                "Linear Insights",
+                "Linear Asks",
+                "Zendesk and Intercom integrations"
+              ]
+            },
+            {
+              "name": "Enterprise",
+              "price": "Custom",
+              "features": [
+                "All Business features +",
+                "Invoice/PO billing",
+                "SAML and SCIM",
+                "Granular admin controls",
+                "Enterprise-grade security",
+                "Advanced org modeling",
+                "Migration & onboarding support",
+                "Priority support",
+                "Account management"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "cause": "url_moved",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "fetch_pricing",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Updated the default pricing URL to the correct, active Vercel pricing page instead of the old login-restricted URL.",
+        "duration_ms": 4357,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 7849,
+            "output": 963,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 7849,
+                "output": 963,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.004762199999999999
+      },
+      "after": {
+        "kind": "replay",
+        "task": "vercel_pricing",
+        "category": "pricing",
+        "started_at": "2026-10-17T21:48:39.115Z",
+        "duration_ms": 2586,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Hobby\", \"Pro\", \"Enterprise\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/\\$\\s?\\d/ x1",
+              "passed": true,
+              "detail": "3 matches"
+            },
+            {
+              "expectation": "3+ records with name|title|plan|tier",
+              "passed": true,
+              "detail": "largest list has 3 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-39-115Z-qrs0un",
+        "workflow_version": 2,
+        "output": {
+          "plans": [
+            {
+              "name": "Hobby",
+              "monthly_price": "$0/mo.",
+              "key_features": [
+                "Import your repo, deploy in seconds",
+                "Automatic CI/CD",
+                "Web Application Firewall",
+                "Global, automated CDN",
+                "Fluid compute",
+                "DDoS Mitigation",
+                "Traffic & performance insights"
+              ]
+            },
+            {
+              "name": "Pro",
+              "monthly_price": "$20/mo.",
+              "key_features": [
+                "All Hobby features, plus:",
+                "$20 of included usage credit",
+                "Flat Rate CDN with traffic spike protection",
+                "Advanced spend management",
+                "Team collaboration & free viewer seats",
+                "Cold start prevention",
+                "Free custom domain"
+              ]
+            },
+            {
+              "name": "Enterprise",
+              "monthly_price": "Custom",
+              "key_features": [
+                "All Pro features, plus:",
+                "Guest & Team access controls",
+                "SCIM & Directory Sync",
+                "Managed WAF Rulesets",
+                "Multi-region compute & failover",
+                "99.99% SLA",
+                "Advanced Support"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "cause": "redirected_home",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_plans",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "I updated the pricing URL default value and the parameter description to point to the correct pricing page instead of the homepage, and removed the hardcoded reference from the extraction instruction.",
+        "duration_ms": 3662,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 9352,
+            "output": 1050,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 9352,
+                "output": 1050,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.005430600000000001
+      },
+      "after": {
+        "kind": "replay",
+        "task": "netlify_pricing",
+        "category": "pricing",
+        "started_at": "2026-10-17T21:48:44.821Z",
+        "duration_ms": 2027,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/\\$\\s?\\d/ x1",
+              "passed": true,
+              "detail": "3 matches"
+            },
+            {
+              "expectation": "3+ records with name|title|plan|tier",
+              "passed": true,
+              "detail": "largest list has 4 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-44-821Z-ml0qsy",
+        "workflow_version": 2,
+        "output": {
+          "plans": [
+            {
+              "name": "Free",
+              "monthly_price": "$0",
+              "features": [
+                "Deploy from AI, Git, or API",
+                "Private by default until you publish",
+                "Unlimited deploy previews",
+                "Build with Agent Runners",
+                "Add Custom domains with SSL",
+                "Functions & AI models",
+                "Store structured data with Netlify Database",
+                "Store files & images with Blob storage",
+                "Firewall Traffic Rules & basic rate limiting",
+                "Global CDN",
+                "300 credit limit / month"
+              ]
+            },
+            {
+              "name": "Personal",
+              "monthly_price": "$9",
+              "features": [
+                "Everything in Free, plus:",
+                "Smart secret detection",
+                "1-day observability",
+                "Priority email support",
+                "1,000 credits / month"
+              ]
+            },
+            {
+              "name": "Pro",
+              "monthly_price": "$20",
+              "features": [
+                "Everything in Personal, plus:",
+                "Private organization repos",
+                "Shared env variables",
+                "3+ concurrent builds",
+                "30-day analytics & metrics",
+                "Monthly credits from plan"
+              ]
+            },
+            {
+              "name": "Enterprise",
+              "monthly_price": "Custom",
+              "features": [
+                "Everything in Pro, plus:",
+                "99.99% SLA",
+                "Enterprise network tier",
+                "High-performance builds",
+                "SSO & SCIM",
+                "Log drains",
+                "Organization management",
+                "24/7 dedicated support"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "books_travel",
+      "category": "products",
+      "cause": "field_renamed",
+      "broke": true,
+      "detected": false,
+      "healed": false
+    },
+    {
+      "task": "scrapeme_shop",
+      "category": "products",
+      "cause": "url_moved",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "fetch_shop",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Updated the default shop URL to the correct live endpoint (https://scrapeme.live/shop) since the old URL returned a 404.",
+        "duration_ms": 3524,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 4630,
+            "output": 1026,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 4630,
+                "output": 1026,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.003954
+      },
+      "after": {
+        "kind": "replay",
+        "task": "scrapeme_shop",
+        "category": "products",
+        "started_at": "2026-10-17T21:48:54.964Z",
+        "duration_ms": 1915,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/£\\s?\\d+\\.\\d\\d/ x15",
+              "passed": true,
+              "detail": "15 matches"
+            },
+            {
+              "expectation": "15+ records with name|title, price",
+              "passed": true,
+              "detail": "largest list has 15 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-54-964Z-015plr",
+        "workflow_version": 2,
+        "output": {
+          "products": [
+            {
+              "name": "Bulbasaur",
+              "price": "£63.00"
+            },
+            {
+              "name": "Ivysaur",
+              "price": "£87.00"
+            },
+            {
+              "name": "Venusaur",
+              "price": "£105.00"
+            },
+            {
+              "name": "Charmander",
+              "price": "£48.00"
+            },
+            {
+              "name": "Charmeleon",
+              "price": "£165.00"
+            },
+            {
+              "name": "Charizard",
+              "price": "£156.00"
+            },
+            {
+              "name": "Squirtle",
+              "price": "£130.00"
+            },
+            {
+              "name": "Wartortle",
+              "price": "£123.00"
+            },
+            {
+              "name": "Blastoise",
+              "price": "£76.00"
+            },
+            {
+              "name": "Caterpie",
+              "price": "£73.00"
+            },
+            {
+              "name": "Butterfree",
+              "price": "£162.00"
+            },
+            {
+              "name": "Weedle",
+              "price": "£25.00"
+            },
+            {
+              "name": "Kakuna",
+              "price": "£148.00"
+            },
+            {
+              "name": "Beedrill",
+              "price": "£168.00"
+            },
+            {
+              "name": "Pidgey",
+              "price": "£159.00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "github_pricing",
+      "category": "pricing",
+      "cause": "url_moved",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "fetch_pricing_page",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "The default URL for the pricing page was outdated (404), so I updated the pricing_url parameter default to the correct live GitHub pricing page.",
+        "duration_ms": 81705,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 8710,
+            "output": 1176,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 8710,
+                "output": 1176,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 74705.817906
+        },
+        "cost_usd": 0.005553
+      },
+      "after": {
+        "kind": "replay",
+        "task": "github_pricing",
+        "category": "pricing",
+        "started_at": "2026-10-17T21:48:42.344Z",
+        "duration_ms": 79816,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "contains \"Free\", \"Team\", \"Enterprise\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "/\\$\\s?\\d/ x2",
+              "passed": true,
+              "detail": "3 matches"
+            },
+            {
+              "expectation": "3+ records with name|title|plan|tier",
+              "passed": true,
+              "detail": "largest list has 3 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-48-42-344Z-u937it",
+        "workflow_version": 2,
+        "output": {
+          "plans": [
+            {
+              "name": "Free",
+              "price_per_user_per_month": "$ 0 USD",
+              "key_features": [
+                "Unlimited public/private repositories",
+                "Dependabot security and version updates",
+                "2,000 CI/CD minutes/month",
+                "500MB of Packages storage",
+                "Issues & Projects",
+                "Community support"
+              ]
+            },
+            {
+              "name": "Team",
+              "price_per_user_per_month": "$ 4 USD",
+              "key_features": [
+                "Everything included in Free, plus...",
+                "Access to GitHub Codespaces",
+                "Repository rules",
+                "Multiple reviewers in pull requests",
+                "Draft pull requests",
+                "Code owners",
+                "Required reviewers",
+                "Pages and Wikis",
+                "Environment deployment branches and secrets",
+                "3,000 CI/CD minutes/month",
+                "2GB of Packages storage",
+                "Web-based support"
+              ]
+            },
+            {
+              "name": "Enterprise",
+              "price_per_user_per_month": "$ 21 USD",
+              "key_features": [
+                "Everything included in Team, plus...",
+                "Data residency",
+                "Enterprise Managed Users",
+                "User provisioning through SCIM",
+                "Enterprise Account to centrally manage multiple organizations",
+                "Environment protection rules",
+                "Repository rules",
+                "Audit Log API",
+                "SOC1, SOC2, type 2 reports annually",
+                "FedRAMP Tailored Authority to Operate (ATO)",
+                "SAML single sign-on",
+                "Advanced auditing",
+                "GitHub Connect",
+                "50,000 CI/CD minutes/month",
+                "50GB of Packages storage"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "webscraper_laptops",
+      "category": "products",
+      "cause": "redirected_home",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_laptops",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "The default URL was set to the homepage instead of the laptops category page, so I updated the parameter default to the correct path.",
+        "duration_ms": 66714,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 13224,
+            "output": 1075,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 13224,
+                "output": 1075,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 61972.032940000005
+        },
+        "cost_usd": 0.0066546999999999995
+      },
+      "after": {
+        "kind": "replay",
+        "task": "webscraper_laptops",
+        "category": "products",
+        "started_at": "2026-10-17T21:50:02.296Z",
+        "duration_ms": 2658,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "/\\$\\s?\\d/ x10",
+              "passed": true,
+              "detail": "10 matches"
+            },
+            {
+              "expectation": "10+ records with name|title|model, price",
+              "passed": true,
+              "detail": "largest list has 10 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-50-02-296Z-441kwy",
+        "workflow_version": 2,
+        "output": {
+          "laptops": [
+            {
+              "name": "Asus VivoBook...",
+              "price": "$295.99",
+              "number_of_reviews": 14
+            },
+            {
+              "name": "Prestigio Smar...",
+              "price": "$299",
+              "number_of_reviews": 8
+            },
+            {
+              "name": "Prestigio Smar...",
+              "price": "$299",
+              "number_of_reviews": 12
+            },
+            {
+              "name": "Aspire E1-510",
+              "price": "$306.99",
+              "number_of_reviews": 2
+            },
+            {
+              "name": "Lenovo V110-15...",
+              "price": "$321.94",
+              "number_of_reviews": 5
+            },
+            {
+              "name": "Lenovo V110-15...",
+              "price": "$356.49",
+              "number_of_reviews": 6
+            },
+            {
+              "name": "Hewlett Packar...",
+              "price": "$364.46",
+              "number_of_reviews": 12
+            },
+            {
+              "name": "Acer Aspire 3...",
+              "price": "$372.7",
+              "number_of_reviews": 2
+            },
+            {
+              "name": "Acer Aspire A3...",
+              "price": "$379.94",
+              "number_of_reviews": 0
+            },
+            {
+              "name": "Acer Aspire ES...",
+              "price": "$379.95",
+              "number_of_reviews": 9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "hn_front_page",
+      "category": "products",
+      "cause": "field_renamed",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_stories",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Fixed the input template of the extract step to read from results.0.text instead of results.0.body.",
+        "duration_ms": 3702,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 6664,
+            "output": 1040,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 6664,
+                "output": 1040,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.0045991999999999995
+      },
+      "after": {
+        "kind": "replay",
+        "task": "hn_front_page",
+        "category": "products",
+        "started_at": "2026-10-17T21:50:07.155Z",
+        "duration_ms": 1982,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "10+ records with title|headline, point|score",
+              "passed": true,
+              "detail": "largest list has 10 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-50-07-155Z-up5plr",
+        "workflow_version": 2,
+        "output": {
+          "stories": [
+            {
+              "title": "Bleached corals thrive within days when touching healthy neighbour",
+              "link": "nature.com",
+              "points": 194
+            },
+            {
+              "title": "Chrome and Edge are removing XSLT: what breaks and what does not",
+              "link": "doctor-seo.net",
+              "points": 41
+            },
+            {
+              "title": "Dam removals are bringing fish back across the northeastern United States",
+              "link": "smithsonianmag.com",
+              "points": 97
+            },
+            {
+              "title": "Furifont, a Japanese font that shows furigana",
+              "link": "antfu.me",
+              "points": 199
+            },
+            {
+              "title": "The Commodore 64 hardware simulator: break chips and pins, see the results",
+              "link": "github.com/antirez",
+              "points": 102
+            },
+            {
+              "title": "Making chicken transparent using Dorito dust",
+              "link": "chillphysicsenjoyer.substack.com",
+              "points": 224
+            },
+            {
+              "title": "Microsoft and CMU Team Up to Train Early Career Software Engineers",
+              "link": "cmu.edu",
+              "points": 30
+            },
+            {
+              "title": "DeepSeek-v4.1-Flash-1017",
+              "link": "huggingface.co",
+              "points": 603
+            },
+            {
+              "title": "Pele – Mermaid diagrams as themeable SVG",
+              "link": "pele.run",
+              "points": 126
+            },
+            {
+              "title": "Source code of the Estonian online voting system",
+              "link": "github.com/valimised",
+              "points": 112
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "github_trending",
+      "category": "products",
+      "cause": "url_moved",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_trending",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Fixed the trending URL parameter default from the non-existent 'https://github.com/trending-old' to the correct 'https://github.com/trending'.",
+        "duration_ms": 3975,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 4869,
+            "output": 638,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 4869,
+                "output": 638,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.0030556999999999997
+      },
+      "after": {
+        "kind": "replay",
+        "task": "github_trending",
+        "category": "products",
+        "started_at": "2026-10-17T21:50:07.859Z",
+        "duration_ms": 2109,
+        "status": "ok",
+        "grade": {
+          "passed": false,
+          "results": [
+            {
+              "expectation": "5+ records with name|repo",
+              "passed": false,
+              "detail": "largest list has 1 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-50-07-859Z-4g6d20",
+        "workflow_version": 2,
+        "output": {
+          "repositories": [
+            {
+              "repo": "anthropics / claude-plugins-official",
+              "description": "Official, Anthropic-managed directory of high quality Claude Code Plugins.",
+              "language": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "cause": "redirected_home",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "extract_roles",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "The default job board URL pointed to the Greenhouse homepage instead of Anthropic's specific board, so I updated the default parameter to include the correct Anthropic path.",
+        "duration_ms": 3417,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 5585,
+            "output": 936,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 5585,
+                "output": 936,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.0040155
+      },
+      "after": {
+        "kind": "replay",
+        "task": "anthropic_jobs",
+        "category": "jobs",
+        "started_at": "2026-10-17T21:50:12.243Z",
+        "duration_ms": 1710,
+        "status": "ok",
+        "grade": {
+          "passed": false,
+          "results": [
+            {
+              "expectation": "contains \"Anthropic\"",
+              "passed": true,
+              "detail": "all present"
+            },
+            {
+              "expectation": "15+ records with title|role|position|name, location",
+              "passed": false,
+              "detail": "largest list has 7 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 3,
+          "total": 3
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-50-12-243Z-uoxhk5",
+        "workflow_version": 2,
+        "output": {
+          "roles": [
+            {
+              "title": "Anthropic Fellows Program, AI Safety & Security",
+              "location": "London, UK; Ontario, CAN; Remote-Friendly, United States; San Francisco, CA"
+            },
+            {
+              "title": "Anthropic Fellows Program, ML Systems & Reinforcement Learning",
+              "location": ""
+            },
+            {
+              "title": "Anthropic Fellows Program, The Anthropic Institute (Economics & Policy)",
+              "location": ""
+            },
+            {
+              "title": "Anthropic STEM Fellow",
+              "location": "Remote-Friendly, United States; San Francisco, CA"
+            },
+            {
+              "title": "Conceptual Reasoning Fellow",
+              "location": ""
+            },
+            {
+              "title": "Data Operations Manager, Human Data",
+              "location": "San Francisco, CA | New York City, NY"
+            },
+            {
+              "title": "Engineering Manager, GPU (ML Accelerator)",
+              "location": "San Francisco, CA | New York City, NY | Seattle, WA"
+            },
+            {
+              "title": "Engineering Manager, Research Data Platform",
+              "location": ""
+            },
+            {
+              "title": "Engineering Manager, Research Productivity",
+              "location": ""
+            },
+            {
+              "title": "Engineering Manager, Search",
+              "location": ""
+            },
+            {
+              "title": "[Expression of Interest] Research Engineer / Scientist, Alignment - London",
+              "location": "London, UK"
+            },
+            {
+              "title": "[Expression of Interest] Research Manager, Interpretability",
+              "location": "San Francisco, CA"
+            },
+            {
+              "title": "Full-Stack Software Engineer, Reinforcement Learning",
+              "location": ""
+            },
+            {
+              "title": "Life Sciences Operator, Lead",
+              "location": "New York City, NY"
+            },
+            {
+              "title": "Machine Learning Infrastructure Engineer, Safeguards Research",
+              "location": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "openai_jobs",
+      "category": "jobs",
+      "cause": "field_renamed",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_roles",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "I fixed the fetch input template in extract_roles to reference text instead of body, so the page content is correctly passed to the extractor.",
+        "duration_ms": 49232,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 23631,
+            "output": 1133,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 23631,
+                "output": 1133,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 43052.400549
+        },
+        "cost_usd": 0.0099218
+      },
+      "after": {
+        "kind": "replay",
+        "task": "openai_jobs",
+        "category": "jobs",
+        "started_at": "2026-10-17T21:50:15.249Z",
+        "duration_ms": 47455,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "15+ records with title|role|position|name, location",
+              "passed": true,
+              "detail": "largest list has 15 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-50-15-249Z-khbsm0",
+        "workflow_version": 2,
+        "output": {
+          "roles": [
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco; San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "Seattle"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco; London, UK; New York City; Seattle"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco; Mountain View"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "Washington, DC; San Francisco; Seattle"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco; New York City; Seattle; US - Remote"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "San Francisco; Mountain View"
+            },
+            {
+              "title": "Applied AI",
+              "team": "Applied AI",
+              "location": "Seattle"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "cause": "url_moved",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_job_board",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "Restored the fetch step with its min_items check and switched back to fetching the page while updating the default URL to the correct active Palantir Lever board.",
+        "duration_ms": 49533,
+        "usage": {
+          "gemini": {
+            "calls": 3,
+            "input": 9428,
+            "output": 1255,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 3,
+                "input": 9428,
+                "output": 1255,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 43632.539496
+        },
+        "cost_usd": 0.0059659
+      },
+      "after": {
+        "kind": "replay",
+        "task": "palantir_jobs",
+        "category": "jobs",
+        "started_at": "2026-10-17T21:51:02.554Z",
+        "duration_ms": 2125,
+        "status": "ok",
+        "grade": {
+          "passed": false,
+          "results": [
+            {
+              "expectation": "3+ records with title|role|position|name, location",
+              "passed": false,
+              "detail": "largest list has 2 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-51-02-554Z-y6vz02",
+        "workflow_version": 2,
+        "output": {
+          "roles": [
+            {
+              "title": "Forward Deployed Infrastructure Engineer, New Grad - US Government",
+              "location": "Washington, D.C."
+            },
+            {
+              "title": "Forward Deployed Software Engineer, New Grad - UK Government",
+              "location": "London, United Kingdom"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "cause": "redirected_home",
+      "broke": false,
+      "detected": false,
+      "healed": false
+    },
+    {
+      "task": "yc_jobs",
+      "category": "jobs",
+      "cause": "field_renamed",
+      "broke": true,
+      "detected": true,
+      "healed": true,
+      "failed_step": "extract_jobs",
+      "repair": {
+        "changed": true,
+        "verified": true,
+        "rounds": 1,
+        "reply": "I fixed the input template in the extract_jobs step to read text instead of the non-existent body field.",
+        "duration_ms": 4114,
+        "usage": {
+          "gemini": {
+            "calls": 2,
+            "input": 7731,
+            "output": 1198,
+            "thoughts": 0,
+            "by_model": {
+              "gemini-3.5-flash-lite": {
+                "calls": 2,
+                "input": 7731,
+                "output": 1198,
+                "thoughts": 0
+              }
+            }
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 1,
+            "fetch_urls": 1,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0.005314299999999999
+      },
+      "after": {
+        "kind": "replay",
+        "task": "yc_jobs",
+        "category": "jobs",
+        "started_at": "2026-10-17T21:51:07.801Z",
+        "duration_ms": 2398,
+        "status": "ok",
+        "grade": {
+          "passed": true,
+          "results": [
+            {
+              "expectation": "5+ records with title|role|position|name, company|startup",
+              "passed": true,
+              "detail": "largest list has 20 complete records"
+            }
+          ]
+        },
+        "checks": {
+          "passed": 2,
+          "total": 2
+        },
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "run_id": "2026-10-17T21-51-07-801Z-gcbz44",
+        "workflow_version": 2,
+        "output": {
+          "jobs": [
+            {
+              "role": "AI Engineer",
+              "company": "BlueCargo (S18)"
+            },
+            {
+              "role": "Product Engineer",
+              "company": "Just Appraised (S17)"
+            },
+            {
+              "role": "Senior Software Engineer, Full Stack",
+              "company": "Postscript (W19)"
+            },
+            {
+              "role": "Forward Deployed Engineer, Test & Validation",
+              "company": "Ohm (W23)"
+            },
+            {
+              "role": "Software Engineer",
+              "company": "Middesk (W19)"
+            },
+            {
+              "role": "Senior Network Engineer",
+              "company": "WarpBuild (S21)"
+            },
+            {
+              "role": "Backend Engineer",
+              "company": "GoGoGrandparent (S16)"
+            },
+            {
+              "role": "Software Engineer",
+              "company": "Glimpse (S20)"
+            },
+            {
+              "role": "Senior Engineer",
+              "company": "Kivo Health (W23)"
+            },
+            {
+              "role": "Founding AI Engineer",
+              "company": "Middleware (W23)"
+            },
+            {
+              "role": "Software Engineer, Cloud Infrastructure",
+              "company": "Accord (W20)"
+            },
+            {
+              "role": "Head of Engineering",
+              "company": "Lamar Health (W21)"
+            },
+            {
+              "role": "ML Engineer, LLM's",
+              "company": "Knowtex (S22)"
+            },
+            {
+              "role": "Software Engineer, Backend",
+              "company": "Duffel (S18)"
+            },
+            {
+              "role": "Mechanical Engineer - Robotics",
+              "company": "Nextera Robotics | DIDGE.ai (S20)"
+            },
+            {
+              "role": "Software Engineer (Product)",
+              "company": "Numeral (W23)"
+            },
+            {
+              "role": "Full Stack Developer - Bountiful",
+              "company": "Bountiful (W17)"
+            },
+            {
+              "role": "FDE (Forward Deployment Engineer)",
+              "company": "REVER (S22)"
+            },
+            {
+              "role": "Autonomous Vehicle Test Specialist – San Francisco",
+              "company": "Polymath Robotics (S22)"
+            },
+            {
+              "role": "Staff Full Stack Engineer",
+              "company": "Sully (S21)"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "finished_at": "2026-10-17T21:51:10.205Z"
+}
