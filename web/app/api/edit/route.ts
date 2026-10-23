@@ -31,4 +31,4 @@ export const POST = withUser(async (request: Request) => {
     log(`edit failed: ${message}`);
     return apiError(502, "edit_failed", message);
   }
-});
+}, { paid: "call" });

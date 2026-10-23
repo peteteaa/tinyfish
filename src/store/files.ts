@@ -149,5 +149,16 @@ function ownerBackend(dataDir: string, owner: string): Backend {
         .map((line) => JSON.parse(line) as JobEventRow)
         .filter((r) => r.seq > afterSeq);
     },
+    countJobs(since, ownerPrefix) {
+      if (!fs.existsSync(JOBS)) return 0;
+      return fs
+        .readdirSync(JOBS)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => readJson<StoredJob>(path.join(JOBS, f)))
+        .filter((j) => {
+          const o = j.owner ?? "local";
+          return (ownerPrefix === undefined ? o === owner : o.startsWith(ownerPrefix)) && j.created_at >= since;
+        }).length;
+    },
   };
 }

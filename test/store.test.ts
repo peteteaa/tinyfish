@@ -334,6 +334,25 @@ for (const kind of ["sqlite", "files"] as const) {
       await a.setJobStatus("j1", "done");
       assert.equal((await a.getJobInfo("j1"))!.status, "done");
     });
+
+    test("countJobs: per owner since a time, or across owners by id prefix (literal, not a LIKE pattern)", async () => {
+      const { a, stores } = setup();
+      const g1 = stores("guest_1");
+      const g2 = stores("guest_2");
+      const lookalike = stores("guestX3"); // "guest_" as a LIKE pattern would match this
+      const old = "2026-01-01T00:00:00.000Z";
+      const recent = "2026-06-01T00:00:00.000Z";
+      await g1.createJob({ id: "g1a", type: "run", status: "done", created_at: old });
+      await g1.createJob({ id: "g1b", type: "run", status: "done", created_at: recent });
+      await g2.createJob({ id: "g2a", type: "learn", status: "running", created_at: recent });
+      await lookalike.createJob({ id: "x1", type: "run", status: "done", created_at: recent });
+      await a.createJob({ id: "a1", type: "run", status: "done", created_at: recent });
+      assert.equal(await g1.countJobs(old), 2);
+      assert.equal(await g1.countJobs("2026-03-01T00:00:00.000Z"), 1);
+      assert.equal(await a.countJobs(old), 1);
+      assert.equal(await a.countJobs(old, "guest_"), 3);
+      assert.equal(await a.countJobs("2026-03-01T00:00:00.000Z", "guest_"), 2);
+    });
   });
 }
 

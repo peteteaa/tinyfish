@@ -181,5 +181,13 @@ export function postgresBackend(url: string): BackendFactory {
       );
       return rows.map((r) => ({ seq: r.seq, event: JSON.parse(r.json) }));
     },
+    async countJobs(since, ownerPrefix) {
+      // A prefix match without LIKE: "_" in "guest_" is a LIKE wildcard.
+      const [{ n }] =
+        ownerPrefix === undefined
+          ? await q<{ n: number }>("SELECT COUNT(*)::int AS n FROM jobs WHERE owner = $1 AND created_at >= $2", [owner, since])
+          : await q<{ n: number }>("SELECT COUNT(*)::int AS n FROM jobs WHERE left(owner, length($1)) = $1 AND created_at >= $2", [ownerPrefix, since]);
+      return n;
+    },
   });
 }

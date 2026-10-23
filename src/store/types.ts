@@ -97,6 +97,11 @@ export interface Store {
   appendJobEvent(id: string, seq: number, event: unknown): Promise<void>;
   /** Events with seq > afterSeq, in order. */
   jobEvents(id: string, afterSeq: number): Promise<JobEventRow[]>;
+  /**
+   * Jobs created at or after `since` (ISO time): this owner's, or with `ownerPrefix`, every owner's whose id starts with
+   * it (guest limits count all guests together).
+   */
+  countJobs(since: string, ownerPrefix?: string): Promise<number>;
 }
 
 /** Sync (SQLite, files) or async (Postgres). */
@@ -129,6 +134,7 @@ export interface Backend {
   getJobInfo(id: string): Awaitable<JobInfo | undefined>;
   appendJobEvent(id: string, seq: number, event: unknown): Awaitable<void>;
   jobEvents(id: string, afterSeq: number): Awaitable<JobEventRow[]>;
+  countJobs(since: string, ownerPrefix?: string): Awaitable<number>;
 }
 
 /** A backend opens its database (or directory) once and hands out per-owner views of it. */

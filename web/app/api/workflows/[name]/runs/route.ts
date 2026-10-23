@@ -44,7 +44,7 @@ export const POST = withUser(async (request: Request, { params }: Ctx) => {
   // On serverless hosts the function would stop once the response is sent; after() keeps the job running.
   after(() => job.done);
   return Response.json({ jobId: job.id }, { status: 202 });
-});
+}, { paid: "job" });
 
 /** GET ?limit= -> run summaries, most recent first. */
 export const GET = withUser(async (request: Request, { params }: Ctx) => {

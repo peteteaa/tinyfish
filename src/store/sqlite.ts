@@ -181,6 +181,15 @@ export function sqliteBackend(dataDir: string): BackendFactory {
             .all(id, owner, afterSeq) as { seq: number; json: string }[]
         ).map((r) => ({ seq: r.seq, event: JSON.parse(r.json) }));
       },
+      countJobs(since, ownerPrefix) {
+        // A prefix match without LIKE: "_" in "guest_" is a LIKE wildcard.
+        const row = (
+          ownerPrefix === undefined
+            ? db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE owner = ? AND created_at >= ?").get(owner, since)
+            : db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE substr(owner, 1, length(?)) = ? AND created_at >= ?").get(ownerPrefix, ownerPrefix, since)
+        ) as { n: number };
+        return row.n;
+      },
     };
   };
 }

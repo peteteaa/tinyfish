@@ -101,6 +101,7 @@ export function makeStore(b: Backend, seedsDir: string): Store {
     getJobInfo: async (id) => b.getJobInfo(id),
     appendJobEvent: async (id, seq, event) => b.appendJobEvent(id, seq, event),
     jobEvents: async (id, afterSeq) => b.jobEvents(id, afterSeq),
+    countJobs: async (since, ownerPrefix) => b.countJobs(since, ownerPrefix),
   };
   return store;
 }
