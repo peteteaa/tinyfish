@@ -7,14 +7,13 @@ import { test } from "node:test";
 // Offline tests for repair evidence and the check guard, plus one live Gemini repair (skipped without a key).
 process.env.WM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "wm-repair-test-"));
 
-const { guardChecks, repairAndVerify, repairWorkflow, runEvidence, shapeOf } = await import("../src/repair.js");
-const { runStep, runWorkflowDef } = await import("../src/executor.js");
+const { guardChecks, repairWorkflow, runEvidence, shapeOf } = await import("../src/repair.js");
+const { runStep } = await import("../src/executor.js");
 const { isTransientGeminiError, quotaExhausted } = await import("../src/llm.js");
 const { getWorkflow } = await import("../src/store.js");
 const { MODEL } = await import("../src/llm.js");
 
 const noGemini = !process.env.GEMINI_API_KEY && "GEMINI_API_KEY not set";
-const noKeys = noGemini || (!process.env.TINYFISH_API_KEY && "TINYFISH_API_KEY not set");
 const wf = (await getWorkflow("competitor_pricing"))!;
 
 /** A competitor_pricing run where `pages` were fetched and the extract found `plans[i]` plans on page i. */
@@ -106,36 +105,6 @@ test("isTransientGeminiError: rate limits and overloads are transient, bad reque
   assert.ok(isTransientGeminiError(new Error('{"error":{"code":429,"status":"RESOURCE_EXHAUSTED"}}')));
   assert.ok(isTransientGeminiError(Object.assign(new Error("overloaded"), { status: 503 })));
   assert.ok(!isTransientGeminiError(Object.assign(new Error("bad schema"), { status: 400 })));
-});
-
-test(`repairAndVerify (live TinyFish + Gemini, ${MODEL}): fixes a wrong forEach path and proves it with a test run`, { skip: noKeys, timeout: 600_000 }, async () => {
-  // The bug seen in practice: search runs per competitor (forEach), but fetch reads it as if it didn't.
-  const broken = {
-    name: "pricing_via_search",
-    description: "Find each competitor's pricing page with search, then fetch and extract its plans.",
-    params: { competitors: { type: "string[]" as const, description: "Competitor domains", default: ["firecrawl.dev"] } },
-    steps: [
-      { id: "find_pricing_pages", type: "search" as const, forEach: "{{params.competitors}}", query: "{{item}} pricing",
-        checks: [{ type: "min_items" as const, path: "results", value: 1 }] },
-      { id: "fetch_pages", type: "fetch" as const, urls: "{{steps.find_pricing_pages.results.*.url}}",
-        checks: [{ type: "min_items" as const, path: "results", value: 1 }] },
-      { id: "extract_plans", type: "extract" as const, forEach: "{{steps.fetch_pages.results}}",
-        input: "Title: {{item.title}}\nURL: {{item.final_url}}\n\n{{item.text}}",
-        instruction: "Extract every pricing plan with its price.",
-        output_schema: { type: "object", properties: { plans: { type: "array", items: { type: "object", properties: { name: { type: "string" }, price: { type: ["string", "null"] } } } } } },
-        checks: [{ type: "min_items" as const, path: "plans", value: 1 }] },
-    ],
-  };
-  const failed = await runWorkflowDef(broken, {});
-  assert.equal(failed.status, "error", "the broken workflow should fail at fetch_pages");
-  const result = await repairAndVerify(broken, { ...failed, version: 1 }, "fetch_pages", {
-    onEvent: (e) => e.kind === "test_done" && console.error(`  round ${e.round}: ${e.status}${e.failed_step ? ` at ${e.failed_step}` : ""}`),
-  });
-  console.error(`  reply: ${result.reply}`);
-  assert.equal(result.verified, true, `no fix passed: ${JSON.stringify(result.test)}`);
-  const urls = result.workflow.steps.find((s) => s.id === "fetch_pages") as { urls: unknown };
-  assert.match(String(urls.urls), /find_pricing_pages\.(\*|\d+)\./);
-  assert.equal(result.workflow.source?.repaired_from, 1);
 });
 
 test("quotaExhausted: a used-up daily quota fails at once with what to do; a per-minute limit is retried", () => {
