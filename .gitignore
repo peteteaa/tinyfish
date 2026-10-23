@@ -4,3 +4,12 @@ data/
 .playwright-mcp/
 .vercel
 .env*
+
+# Claude Code and agent skills (local tooling, not part of the app)
+.claude/
+.agents/
+skills-lock.json
+CLAUDE.local.md
+
+# macOS
+.DS_Store
