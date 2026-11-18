@@ -1,0 +1,1267 @@
+{
+  "id": "2026-11-18T21-55-42-165Z-ki60va",
+  "kind": "daily",
+  "started_at": "2026-11-18T21:55:42.165Z",
+  "model": "gemini-3.5-flash-lite",
+  "fast_model": "gemini-3.5-flash-lite",
+  "git_sha": "ba8612a",
+  "options": {
+    "accept": true,
+    "concurrency": 2
+  },
+  "trials": [
+    {
+      "kind": "replay",
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "started_at": "2026-11-18T21:55:42.176Z",
+      "duration_ms": 6028,
+      "status": "error",
+      "error": "step fetch_pricing: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Hobby\", \"Pro\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Hobby, Pro, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-42-195Z-c0e3gc",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "started_at": "2026-11-18T21:55:42.194Z",
+      "duration_ms": 6018,
+      "status": "error",
+      "error": "step fetch_pricing_page: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Team\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Pro, Team, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-42-196Z-bzrgmt",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "linear_pricing",
+      "category": "pricing",
+      "started_at": "2026-11-18T21:55:48.211Z",
+      "duration_ms": 6009,
+      "status": "error",
+      "error": "step fetch_pricing: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Basic\", \"Business\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Basic, Business, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "4+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-48-211Z-w6cfrj",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "github_pricing",
+      "category": "pricing",
+      "started_at": "2026-11-18T21:55:48.215Z",
+      "duration_ms": 6008,
+      "status": "error",
+      "error": "step fetch_pricing_page: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Team\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Team, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x2",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-48-215Z-qzs237",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "started_at": "2026-11-18T21:55:54.222Z",
+      "duration_ms": 6006,
+      "status": "error",
+      "error": "step fetch_pricing: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Free\", \"Pro\", \"Enterprise\"",
+            "passed": false,
+            "detail": "missing Free, Pro, Enterprise"
+          },
+          {
+            "expectation": "/\\$\\s?\\d/ x1",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "3+ records with name|title|plan|tier",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-54-223Z-fby9n9",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "books_travel",
+      "category": "products",
+      "started_at": "2026-11-18T21:55:54.225Z",
+      "duration_ms": 6007,
+      "status": "error",
+      "error": "step fetch_category: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Himalayas\"",
+            "passed": false,
+            "detail": "missing Himalayas"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x11",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "11+ records with title|name, price",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-55-54-225Z-vazydj",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "scrapeme_shop",
+      "category": "products",
+      "started_at": "2026-11-18T21:56:00.230Z",
+      "duration_ms": 6014,
+      "status": "error",
+      "error": "step fetch_shop: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Bulbasaur\", \"Charmander\"",
+            "passed": false,
+            "detail": "missing Bulbasaur, Charmander"
+          },
+          {
+            "expectation": "/£\\s?\\d+\\.\\d\\d/ x15",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "15+ records with name|title, price",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-00-231Z-dfmmpu",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "webscraper_laptops",
+      "category": "products",
+      "started_at": "2026-11-18T21:56:00.234Z",
+      "duration_ms": 6013,
+      "status": "error",
+      "error": "step fetch_laptops_page: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "/\\$\\s?\\d/ x10",
+            "passed": false,
+            "detail": "0 matches"
+          },
+          {
+            "expectation": "10+ records with name|title|model, price",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-00-234Z-e9gcib",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "hn_front_page",
+      "category": "products",
+      "started_at": "2026-11-18T21:56:06.246Z",
+      "duration_ms": 6007,
+      "status": "error",
+      "error": "step fetch_hn: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "10+ records with title|headline, point|score",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-06-247Z-6oycfc",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "github_trending",
+      "category": "products",
+      "started_at": "2026-11-18T21:56:06.249Z",
+      "duration_ms": 6007,
+      "status": "error",
+      "error": "step fetch_trending: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "5+ records with name|repo",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-06-249Z-6t1n33",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "started_at": "2026-11-18T21:56:12.255Z",
+      "duration_ms": 6007,
+      "status": "error",
+      "error": "step fetch_job_board: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "contains \"Anthropic\"",
+            "passed": false,
+            "detail": "missing Anthropic"
+          },
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-12-256Z-lsl85s",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "openai_jobs",
+      "category": "jobs",
+      "started_at": "2026-11-18T21:56:12.258Z",
+      "duration_ms": 6008,
+      "status": "error",
+      "error": "step fetch_job_board: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "15+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-12-258Z-vo1ui5",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "started_at": "2026-11-18T21:56:18.265Z",
+      "duration_ms": 6004,
+      "status": "error",
+      "error": "step fetch_job_board: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "3+ records with title|role|position|name, location",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-18-265Z-fwwgmv",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "started_at": "2026-11-18T21:56:18.268Z",
+      "duration_ms": 6004,
+      "status": "error",
+      "error": "step fetch_jobs_page: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "10+ records with title|role|position|name, company",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-18-268Z-o6dmwj",
+      "workflow_version": 1
+    },
+    {
+      "kind": "replay",
+      "task": "yc_jobs",
+      "category": "jobs",
+      "started_at": "2026-11-18T21:56:24.271Z",
+      "duration_ms": 6009,
+      "status": "error",
+      "error": "step fetch_jobs_page: TINYFISH_API_KEY is not set. Copy .env.example to .env and fill it in.",
+      "grade": {
+        "passed": false,
+        "results": [
+          {
+            "expectation": "5+ records with title|role|position|name, company|startup",
+            "passed": false,
+            "detail": "largest list has 0 complete records"
+          }
+        ]
+      },
+      "checks": {
+        "passed": 0,
+        "total": 0
+      },
+      "usage": {
+        "gemini": {
+          "calls": 0,
+          "input": 0,
+          "output": 0,
+          "thoughts": 0,
+          "by_model": {}
+        },
+        "tinyfish": {
+          "search": 0,
+          "fetch": 1,
+          "fetch_urls": 1,
+          "agent": 0,
+          "agent_steps": 0
+        },
+        "wait_ms": 0
+      },
+      "cost_usd": 0,
+      "run_id": "2026-11-18T21-56-24-272Z-ue55qq",
+      "workflow_version": 1
+    }
+  ],
+  "repairs": [
+    {
+      "task": "vercel_pricing",
+      "category": "pricing",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_pricing",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 6,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "supabase_pricing",
+      "category": "pricing",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_pricing_page",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "linear_pricing",
+      "category": "pricing",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_pricing",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "github_pricing",
+      "category": "pricing",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_pricing_page",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 1,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "netlify_pricing",
+      "category": "pricing",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_pricing",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "books_travel",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_category",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "scrapeme_shop",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_shop",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "webscraper_laptops",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_laptops_page",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "hn_front_page",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_hn",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "github_trending",
+      "category": "products",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_trending",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 1,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "anthropic_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_job_board",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "openai_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_job_board",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 1,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "palantir_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_job_board",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "wwr_programming_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_jobs_page",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    },
+    {
+      "task": "yc_jobs",
+      "category": "jobs",
+      "cause": "daily",
+      "broke": true,
+      "detected": true,
+      "healed": false,
+      "failed_step": "fetch_jobs_page",
+      "repair": {
+        "changed": false,
+        "verified": null,
+        "rounds": 0,
+        "reply": "",
+        "duration_ms": 2,
+        "usage": {
+          "gemini": {
+            "calls": 0,
+            "input": 0,
+            "output": 0,
+            "thoughts": 0,
+            "by_model": {}
+          },
+          "tinyfish": {
+            "search": 0,
+            "fetch": 0,
+            "fetch_urls": 0,
+            "agent": 0,
+            "agent_steps": 0
+          },
+          "wait_ms": 0
+        },
+        "cost_usd": 0,
+        "error": "GEMINI_API_KEY is not set. Copy .env.example to .env and fill it in."
+      }
+    }
+  ],
+  "finished_at": "2026-11-18T21:56:30.282Z"
+}
